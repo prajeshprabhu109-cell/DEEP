@@ -4,1501 +4,1775 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DEEP SIGNAL</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='none' stroke='%2300ffff' stroke-width='6'/><circle cx='50' cy='50' r='6' fill='%2300ffff'/><line x1='50' y1='5' x2='50' y2='50' stroke='%2300ffff' stroke-width='4' stroke-linecap='round'><animateTransform attributeName='transform' type='rotate' from='0 50 50' to='360 50 50' dur='3s' repeatCount='indefinite'/></line></svg>" type="image/svg+xml">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{background:#000;overflow:hidden;font-family:'Share Tech Mono',monospace;color:#0ff;}
-  #gameCanvas{display:block;position:absolute;top:0;left:0;}
-  #ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;}
-  #hud{position:absolute;top:12px;left:12px;font-size:11px;line-height:1.8;text-shadow:0 0 8px #0ff;}
-  #hud .label{color:#0ff5;font-size:9px;letter-spacing:2px;text-transform:uppercase;}
-  #hud .value{color:#0ff;font-size:14px;font-family:'Orbitron',monospace;}
-  .bar-container{width:120px;height:6px;background:#0ff1;border:1px solid #0ff3;margin:2px 0 6px;}
-  .bar{height:100%;transition:width 0.2s;}
-  #bar-fuel{background:linear-gradient(90deg,#0f8,#0ff);}
-  #bar-hull{background:linear-gradient(90deg,#f80,#ff0);}
-  #bar-cargo{background:linear-gradient(90deg,#a0f,#f0f);}
-  #depth-meter{position:absolute;top:12px;right:12px;text-align:right;font-family:'Orbitron',monospace;}
-  #depth-val{font-size:28px;font-weight:900;color:#0ff;text-shadow:0 0 20px #0ff,0 0 40px #0ff5;}
-  #depth-label{font-size:9px;letter-spacing:3px;color:#0ff5;}
-  #credits-display{position:absolute;bottom:12px;right:12px;text-align:right;}
-  #credits-val{font-size:22px;font-weight:700;color:#ff0;text-shadow:0 0 15px #ff0,0 0 30px #ff05;font-family:'Orbitron',monospace;}
-  #alert-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;opacity:0;transition:opacity 0.3s;}
-  #alert-box.show{opacity:1;}
-  #alert-text{font-size:20px;font-family:'Orbitron',monospace;color:#f00;text-shadow:0 0 20px #f00;letter-spacing:4px;animation:pulse 0.5s infinite alternate;}
-  @keyframes pulse{from{opacity:0.7}to{opacity:1}}
-  #screen-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:20;}
-  #title-screen{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;pointer-events:all;}
-  #title-screen h1{font-family:'Orbitron',monospace;font-size:clamp(40px,8vw,90px);font-weight:900;color:#0ff;text-shadow:0 0 30px #0ff,0 0 60px #0ff5,0 0 100px #0ff2;letter-spacing:12px;margin-bottom:8px;animation:titleGlow 3s ease-in-out infinite;}
-  #title-screen .sub{font-size:clamp(9px,1.5vw,13px);letter-spacing:5px;color:#0ff5;margin-bottom:60px;}
-  @keyframes titleGlow{0%,100%{text-shadow:0 0 30px #0ff,0 0 60px #0ff5}50%{text-shadow:0 0 50px #0ff,0 0 100px #0ff,0 0 150px #0ff5}}
-  .start-btn{background:transparent;border:1px solid #0ff;color:#0ff;font-family:'Orbitron',monospace;font-size:14px;letter-spacing:4px;padding:16px 48px;cursor:pointer;pointer-events:all;position:relative;overflow:hidden;transition:all 0.3s;text-transform:uppercase;margin:8px;}
-  .start-btn:hover{background:#0ff1;box-shadow:0 0 20px #0ff5;transform:scale(1.03);}
-  .start-btn::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,#0ff2,transparent);transition:left 0.5s;}
-  .start-btn:hover::before{left:100%;}
-  .controls-list{font-size:11px;line-height:2.2;color:#0ff6;margin-top:20px;text-align:center;max-width:400px;}
-  .controls-list span{color:#0ff;}
-  #death-screen,#extract-screen{position:absolute;top:0;left:0;width:100%;height:100%;background:#000d;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;pointer-events:all;display:none;}
-  #death-screen h2{font-family:'Orbitron',monospace;font-size:50px;color:#f00;text-shadow:0 0 30px #f00;letter-spacing:8px;margin-bottom:20px;}
-  #extract-screen h2{font-family:'Orbitron',monospace;font-size:40px;color:#0f0;text-shadow:0 0 30px #0f0;letter-spacing:6px;margin-bottom:20px;}
-  .run-stats{font-size:13px;line-height:2.4;color:#0ff8;margin:20px 0;text-align:center;}
-  .run-stats span{color:#ff0;font-family:'Orbitron',monospace;}
-  #upgrade-screen{position:absolute;top:0;left:0;width:100%;height:100%;background:#000e;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;pointer-events:all;display:none;}
-  #upgrade-screen h2{font-family:'Orbitron',monospace;font-size:32px;color:#a0f;text-shadow:0 0 20px #a0f;letter-spacing:6px;margin-bottom:8px;}
-  .upgrade-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:700px;width:90%;margin:20px 0;}
-  .upgrade-card{border:1px solid #0ff3;padding:16px;background:#0ff05;cursor:pointer;pointer-events:all;transition:all 0.25s;position:relative;overflow:hidden;}
-  .upgrade-card:hover{border-color:#0ff;background:#0ff1;box-shadow:0 0 20px #0ff3;}
-  .upgrade-card.owned{border-color:#0f04;background:#0f005;cursor:default;}
-  .upgrade-card.owned:hover{box-shadow:none;transform:none;}
-  .upgrade-card h3{font-family:'Orbitron',monospace;font-size:12px;color:#0ff;margin-bottom:6px;letter-spacing:2px;}
-  .upgrade-card p{font-size:10px;color:#0ff7;line-height:1.6;}
-  .upgrade-card .cost{font-size:11px;color:#ff0;margin-top:8px;font-family:'Orbitron',monospace;}
-  .upgrade-card .owned-badge{font-size:10px;color:#0f0;margin-top:8px;letter-spacing:2px;}
-  #sonar-indicator{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);display:flex;gap:6px;}
-  .sonar-dot{width:8px;height:8px;border-radius:50%;background:#0ff2;border:1px solid #0ff4;transition:background 0.1s;}
-  .sonar-dot.ready{background:#0ff;box-shadow:0 0 8px #0ff;}
-  #noise-meter{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:200px;text-align:center;}
-  #noise-label{font-size:9px;letter-spacing:3px;color:#f005;margin-bottom:4px;}
-  #noise-bar-wrap{width:100%;height:4px;background:#f001;border:1px solid #f003;}
-  #noise-bar{height:100%;background:linear-gradient(90deg,#f80,#f00);width:0%;transition:width 0.1s;}
-  #mini-compass{position:absolute;bottom:12px;left:12px;font-size:10px;color:#0ff5;letter-spacing:2px;}
-  #warning-flash{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:15;opacity:0;}
-  #scanlines{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,#0001 2px,#0001 4px);z-index:8;opacity:0.3;}
-  .biome-banner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Orbitron',monospace;font-size:28px;letter-spacing:8px;text-align:center;pointer-events:none;opacity:0;transition:opacity 0.5s;z-index:30;}
-  #tooltip{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);font-size:10px;color:#0ff4;letter-spacing:2px;text-align:center;pointer-events:none;}
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;overflow:hidden;font-family:'Share Tech Mono',monospace;color:#0ff;}
+canvas{display:block;position:absolute;top:0;left:0;}
+#cvMain{z-index:1;}
+#cvSonar{z-index:2;pointer-events:none;}
+/* ── HUD ─────────────────────────────────────── */
+#ui{position:absolute;inset:0;pointer-events:none;z-index:10;}
+#hud{position:absolute;top:14px;left:14px;font-size:11px;line-height:1.6;}
+.lbl{color:#0ff4;font-size:8px;letter-spacing:3px;text-transform:uppercase;margin-top:5px;}
+.bar-wrap{width:130px;height:5px;background:#0ff0;border:1px solid #0ff3;margin:2px 0 0;}
+.bar{height:100%;transition:width .15s;}
+#bFuel{background:linear-gradient(90deg,#0af,#0ff);}
+#bHull{background:linear-gradient(90deg,#f60,#ff0);}
+#bCargo{background:linear-gradient(90deg,#80f,#f0f);}
+#sonarReady{width:10px;height:10px;border-radius:50%;border:1px solid #0ff6;background:#0ff2;transition:all .2s;display:inline-block;margin-top:6px;vertical-align:middle;}
+#sonarReady.rdy{background:#0ff;box-shadow:0 0 10px #0ff,0 0 20px #0ff6;}
+#sonarCoolPct{font-size:9px;color:#0ff5;margin-left:5px;vertical-align:middle;}
+#depthMeter{position:absolute;top:56px;right:14px;text-align:right;font-family:'Orbitron',monospace;}
+#depthVal{font-size:30px;font-weight:900;color:#0ff;text-shadow:0 0 25px #0ff,0 0 50px #0ff4;}
+#depthLbl{font-size:8px;letter-spacing:4px;color:#0ff5;}
+/* Noise meter */
+#noiseMeter{position:absolute;bottom:50px;left:50%;transform:translateX(-50%);width:220px;text-align:center;}
+#noiseLbl{font-size:8px;letter-spacing:3px;color:#f006;margin-bottom:3px;}
+#noiseTrack{width:100%;height:5px;background:#f001;border:1px solid #f003;position:relative;overflow:visible;}
+#noiseBar{height:100%;background:linear-gradient(90deg,#f80,#f00);width:0%;transition:width .08s;}
+#noiseThresh{position:absolute;top:-3px;width:2px;height:11px;background:#ff0;left:40%;}
+/* Alert */
+#alertBox{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;opacity:0;transition:opacity .25s;}
+#alertBox.on{opacity:1;}
+#alertTxt{font-size:18px;font-family:'Orbitron',monospace;color:#f00;text-shadow:0 0 20px #f00;letter-spacing:4px;}
+/* Warning vignette */
+#warnFlash{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:14;}
+/* Scan lines */
+#scanlines{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,#0001 3px,#0001 4px);z-index:8;opacity:.25;}
+/* Credits run */
+#runCr{position:absolute;bottom:14px;right:14px;font-family:'Orbitron',monospace;font-size:18px;color:#ff0;text-shadow:0 0 12px #ff0,0 0 25px #ff04;}
+/* Tooltip bar */
+#tipBar{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-size:9px;color:#0ff3;letter-spacing:2px;white-space:nowrap;}
+/* Mute button */
+#fsBtn{
+  position:absolute;top:14px;right:54px;
+  width:32px;height:32px;border:1px solid #0ff4;border-radius:4px;
+  background:transparent;cursor:pointer;pointer-events:all;z-index:20;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;padding:0;
+}
+#fsBtn:hover{border-color:#0ff;box-shadow:0 0 10px #0ff6;}
+#fsBtn svg{width:16px;height:16px;stroke:#0ff;fill:none;stroke-width:2;}
+#muteBtn{position:absolute;top:14px;right:14px;width:32px;height:32px;border:1px solid #0ff4;border-radius:4px;background:transparent;cursor:pointer;pointer-events:all;display:flex;align-items:center;justify-content:center;z-index:20;transition:all .2s;padding:0;}
+#muteBtn:hover{border-color:#0ff;box-shadow:0 0 10px #0ff6;}
+#muteBtn svg{width:16px;height:16px;fill:none;stroke:#0ff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+#muteBtn.muted{border-color:#f446;}
+#muteBtn.muted svg{stroke:#f44;}
+/* Biome flash */
+#biomeBanner{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);font-family:'Orbitron',monospace;font-size:26px;letter-spacing:8px;pointer-events:none;opacity:0;text-align:center;z-index:30;transition:opacity .4s;}
+
+/* ── SCREENS ────────────────────────────────────── */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;pointer-events:all;}
+#scrTitle{background:radial-gradient(ellipse at center,#020a10 0%,#000 100%);}
+#scrTitle h1{font-family:'Orbitron',monospace;font-size:clamp(36px,7vw,88px);font-weight:900;color:#0ff;text-shadow:0 0 30px #0ff,0 0 70px #0ff5;letter-spacing:14px;animation:hGlow 3s ease-in-out infinite;}
+@keyframes hGlow{0%,100%{text-shadow:0 0 30px #0ff,0 0 60px #0ff4}50%{text-shadow:0 0 60px #0ff,0 0 120px #0ff,0 0 180px #0ff3}}
+#scrTitle .sub{font-size:clamp(9px,1.4vw,12px);letter-spacing:6px;color:#0ff4;margin-bottom:50px;}
+.btn{background:transparent;border:1px solid currentColor;font-family:'Orbitron',monospace;font-size:13px;letter-spacing:4px;padding:14px 44px;cursor:pointer;pointer-events:all;transition:all .25s;text-transform:uppercase;margin:6px;position:relative;overflow:hidden;}
+.btn:hover{filter:brightness(1.4);box-shadow:0 0 22px currentColor;}
+.btn::after{content:'';position:absolute;inset:0;background:currentColor;opacity:0;transition:opacity .2s;}
+.btn:hover::after{opacity:.08;}
+.btn-cyan{color:#0ff;}
+.btn-red{color:#f44;}
+.btn-green{color:#0f8;}
+.btn-purple{color:#a0f;}
+#scrDead{background:#080000dd;display:none;}
+#scrDead h2{font-family:'Orbitron',monospace;font-size:48px;color:#f00;text-shadow:0 0 30px #f00;letter-spacing:8px;}
+#scrExtract{background:#00080Add;display:none;}
+#scrExtract h2{font-family:'Orbitron',monospace;font-size:38px;color:#0f8;text-shadow:0 0 30px #0f8;letter-spacing:6px;}
+.runStats{font-size:12px;line-height:2.6;color:#0ff7;margin:18px 0;text-align:center;}
+.runStats span{color:#ff0;font-family:'Orbitron',monospace;}
+
+/* ── UPGRADE SHOP ──────────────────────────────── */
+#scrUpgrade{background:#000510ee;display:none;overflow-y:auto;padding:20px 0;}
+#scrUpgrade h2{font-family:'Orbitron',monospace;font-size:28px;color:#a0f;text-shadow:0 0 20px #a0f;letter-spacing:6px;margin-bottom:4px;}
+#shopBalance{font-family:'Orbitron',monospace;font-size:15px;color:#ff0;text-shadow:0 0 12px #ff04;margin-bottom:16px;}
+#shopGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;max-width:780px;width:92%;margin:0 auto 16px;}
+.upCard{border:1px solid #0ff2;padding:14px;background:#0ff0;transition:all .2s;position:relative;overflow:hidden;}
+.upCard:not(.maxed):hover{border-color:#0ff9;background:#0ff0;box-shadow:0 0 18px #0ff3;cursor:pointer;}
+.upCard.maxed{border-color:#0f04;background:#0f00;opacity:.75;}
+.upCard h3{font-family:'Orbitron',monospace;font-size:11px;color:#0ff;margin-bottom:5px;letter-spacing:2px;}
+.upCard p{font-size:9px;color:#0ff8;line-height:1.7;}
+.upCard .upLevel{font-size:9px;color:#ff0;margin-top:7px;font-family:'Orbitron',monospace;letter-spacing:1px;}
+.upCard .upCost{font-size:10px;color:#0f8;margin-top:3px;}
+.upCard.maxed .upLevel{color:#0f8;}
+.upCard .upPips{display:flex;gap:3px;margin-top:6px;}
+.upPip{width:10px;height:10px;border-radius:50%;border:1px solid #0ff4;}
+.upPip.filled{background:#0ff;box-shadow:0 0 5px #0ff;}
+.upCard .noAfford{border-color:#f004!important;animation:noMoney .3s;}
+@keyframes noMoney{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+/* ── DESCEND button pulse ── */
+@keyframes descendPulse{
+  0%,100%{box-shadow:0 0 8px #0ff4,0 0 0px #0ff0;border-color:#0ff6;}
+  50%{box-shadow:0 0 22px #0ff,0 0 44px #0ff5,0 0 66px #0ff2;border-color:#0ff;}
+}
+#btnPlay{animation:descendPulse 2s ease-in-out infinite;}
+
+/* ── PAUSE SCREEN ── */
+#scrPause{background:#000c14ee;display:none;}
+#scrPause h2{font-family:'Orbitron',monospace;font-size:36px;color:#0ff;text-shadow:0 0 25px #0ff;letter-spacing:8px;margin-bottom:6px;}
+#scrPause .pauseSub{font-size:9px;letter-spacing:4px;color:#0ff5;margin-bottom:36px;}
 </style>
 </head>
 <body>
-<canvas id="gameCanvas"></canvas>
-<div id="scanlines"></div>
-<div id="warning-flash"></div>
 
-<!-- GAME UI -->
+<!-- two canvases: world + sonar trail overlay -->
+<canvas id="cvMain"></canvas>
+<canvas id="cvSonar"></canvas>
+<div id="scanlines"></div>
+<div id="warnFlash"></div>
+
+<!-- ── HUD ────────────────────────────── -->
 <div id="ui">
   <div id="hud">
-    <div class="label">FUEL</div>
-    <div class="bar-container"><div class="bar" id="bar-fuel" style="width:100%"></div></div>
-    <div class="label">HULL</div>
-    <div class="bar-container"><div class="bar" id="bar-hull" style="width:100%"></div></div>
-    <div class="label">CARGO</div>
-    <div class="bar-container"><div class="bar" id="bar-cargo" style="width:0%"></div></div>
-    <div class="label" style="margin-top:6px">CREDITS</div>
-    <div class="value" id="credits-run">0</div>
+    <div class="lbl">FUEL</div>
+    <div class="bar-wrap"><div class="bar" id="bFuel" style="width:100%"></div></div>
+    <div class="lbl">HULL</div>
+    <div class="bar-wrap"><div class="bar" id="bHull" style="width:100%"></div></div>
+    <div class="lbl">CARGO</div>
+    <div class="bar-wrap"><div class="bar" id="bCargo" style="width:0%"></div></div>
+    <div class="lbl" style="margin-top:9px;">SONAR</div>
+    <div><span id="sonarReady" class="rdy"></span><span id="sonarCoolPct">READY</span></div>
   </div>
-  <div id="depth-meter">
-    <div id="depth-label">DEPTH (m)</div>
-    <div id="depth-val">0</div>
+  <div id="depthMeter">
+    <div id="depthLbl">DEPTH (m)</div>
+    <div id="depthVal">0</div>
   </div>
-  <div id="noise-meter">
-    <div id="noise-label">⚠ NOISE LEVEL</div>
-    <div id="noise-bar-wrap"><div id="noise-bar"></div></div>
+
+  <button id="muteBtn" title="Toggle Mute">
+    <svg id="muteIcon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      <path id="soundWave1" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+      <path id="soundWave2" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+      <line id="muteLine" x1="1" y1="1" x2="23" y2="23" style="display:none"/>
+    </svg>
+  </button>
+  <button id="fsBtn" title="Toggle Fullscreen">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+  </svg>
+</button>
+  <div id="noiseMeter">
+    <div id="noiseLbl">⚠ NOISE LEVEL</div>
+    <div id="noiseTrack"><div id="noiseBar"></div><div id="noiseThresh"></div></div>
   </div>
-  <div id="mini-compass">↑ SURFACE</div>
-  <div id="alert-box"><div id="alert-text"></div></div>
-  <div id="tooltip">SPACE — SONAR | CLICK — GRAPPLE | WASD/ARROWS — THRUST | E — DRILL | Q — BOOST</div>
+  <div id="runCr">0 CR</div>
+  <div id="alertBox"><div id="alertTxt"></div></div>
+  <div id="biomeBanner"></div>
+  <div id="tipBar">SPACE=SONAR · WASD=THRUST · CLICK=GRAPPLE · E=DRILL · Q=BOOST · F=DUMP CARGO · ESC=PAUSE</div>
 </div>
 
-<!-- TITLE SCREEN -->
-<div id="title-screen">
+<!-- ── TITLE ─────────────────────────── -->
+<div class="screen" id="scrTitle">
   <h1>DEEP SIGNAL</h1>
   <div class="sub">YOU CAN ONLY SEE WHEN YOU MAKE NOISE</div>
-  <button class="start-btn" id="btn-play">DESCEND</button>
-  <div class="controls-list">
-    <span>SPACE</span> — Fire Sonar Pulse<br>
-    <span>WASD / ↑↓←→</span> — Thrust<br>
-    <span>LEFT CLICK</span> — Launch Grapple Hook<br>
-    <span>E</span> — Drill (when near wall)<br>
-    <span>Q</span> — Emergency Boost<br>
-    <span>F</span> — Jettison Cargo (escape!)<br>
-    <span>ESC</span> — Emergency Extraction
-  </div>
+  <button class="btn btn-cyan" id="btnPlay">▶ DESCEND</button>
+  <button class="btn btn-purple" id="btnTitleUpgrade" style="font-size:11px;padding:10px 30px;margin-top:4px;">UPGRADE ROVER</button>
 </div>
 
-<!-- DEATH SCREEN -->
-<div id="death-screen">
+<!-- ── DEATH ─────────────────────────── -->
+<div class="screen" id="scrDead">
   <h2>SIGNAL LOST</h2>
-  <div class="run-stats" id="death-stats"></div>
-  <button class="start-btn" id="btn-retry">TRY AGAIN</button>
-  <button class="start-btn" id="btn-death-upgrade">UPGRADE ROVER</button>
+  <div class="runStats" id="deadStats"></div>
+  <button class="btn btn-red" id="btnRetry">RETRY</button>
+  <button class="btn btn-purple" id="btnDeadUpgrade">UPGRADE ROVER</button>
 </div>
 
-<!-- EXTRACT SCREEN -->
-<div id="extract-screen">
-  <h2>EXTRACTION COMPLETE</h2>
-  <div class="run-stats" id="extract-stats"></div>
-  <button class="start-btn" id="btn-extract-upgrade">UPGRADE ROVER</button>
-  <button class="start-btn" id="btn-extract-play">DESCEND AGAIN</button>
+<!-- ── EXTRACTED ──────────────────────── -->
+<div class="screen" id="scrExtract">
+  <h2>EXTRACTED</h2>
+  <div class="runStats" id="exStats"></div>
+  <button class="btn btn-green" id="btnExPlay">DESCEND AGAIN</button>
+  <button class="btn btn-purple" id="btnExUpgrade">UPGRADE ROVER</button>
 </div>
 
-<!-- UPGRADE SCREEN -->
-<div id="upgrade-screen">
-  <h2>UPGRADE ROVER</h2>
-  <div style="font-size:11px;color:#ff0;font-family:'Orbitron',monospace" id="total-credits-display">TOTAL CREDITS: 0</div>
-  <div class="upgrade-grid" id="upgrade-grid"></div>
-  <button class="start-btn" id="btn-upgrade-done">DESCEND</button>
+<!-- ── UPGRADE SHOP ─────────────────── -->
+<div class="screen" id="scrUpgrade">
+  <h2>ROVER UPGRADES</h2>
+  <div id="shopBalance">TOTAL CREDITS: 0</div>
+  <div id="shopGrid"></div>
+  <button class="btn btn-cyan" id="btnUpgDone">▶ DESCEND</button>
+</div>
+
+<!-- ── PAUSE ─────────────────────────── -->
+<div class="screen" id="scrPause">
+  <h2>MISSION PAUSED</h2>
+  <div class="pauseSub">SIGNAL SUSPENDED · AWAITING ORDERS</div>
+  <button class="btn btn-cyan" id="btnResume">▶ RESUME MISSION</button>
+  <button class="btn btn-red" id="btnEmergencyExtract" style="margin-top:8px;">⚠ EMERGENCY EXTRACT</button>
 </div>
 
 <script>
-// =============================================
-// DEEP SIGNAL — Full Game Engine
-// =============================================
+'use strict';
+// ═══════════════════════════════════════════════════════
+//  DEEP SIGNAL  –  Full rewrite with deep system upgrades
+// ═══════════════════════════════════════════════════════
 
-// CrazyGames SDK init (graceful fallback)
-(function(){
-  try{
-    if(window.CrazyGames && window.CrazyGames.SDK){
-      window.CrazyGames.SDK.init().catch(()=>{});
-    }
-  }catch(e){}
+/* ── CrazyGames SDK ── */
+(()=>{
+  const s=document.createElement('script');
+  s.src='https://sdk.crazygames.com/crazygames-sdk-v3.js';
+  s.onload=()=>{
+    try{
+      window.CrazyGames.SDK.init()
+        .then(()=>{
+          // Signal that loading has started
+          try{window.CrazyGames.SDK.game.loadingStart();}catch(e){}
+          // Signal that loading is complete; assets ready, player is on Title Screen before clicking Start
+          try{window.CrazyGames.SDK.game.loadingStop();}catch(e){}
+        })
+        .catch(()=>{});
+    }catch(e){}
+  };
+  document.head.appendChild(s);
 })();
+function cgEvent(t){try{if(window.CrazyGames?.SDK?.game){if(t==='start')window.CrazyGames.SDK.game.gameplayStart();else if(t==='stop')window.CrazyGames.SDK.game.gameplayStop();else if(t==='happy')window.CrazyGames.SDK.game.happytime();}}catch(e){}}
 
-function crazySdkEvent(type){
-  try{
-    if(window.CrazyGames&&window.CrazyGames.SDK&&window.CrazyGames.SDK.game){
-      if(type==='start') window.CrazyGames.SDK.game.gameplayStart();
-      else if(type==='stop') window.CrazyGames.SDK.game.gameplayStop();
-      else if(type==='happy') window.CrazyGames.SDK.game.happytime();
-    }
-  }catch(e){}
-}
+/* ── Canvas setup ── */
+const cvMain  = document.getElementById('cvMain');
+const cvSonar = document.getElementById('cvSonar');
+const ctx  = cvMain.getContext('2d');
+const sCtx = cvSonar.getContext('2d');
 
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-
-// ---- RESIZE ----
 function resize(){
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  cvMain.width=cvSonar.width=innerWidth;
+  cvMain.height=cvSonar.height=innerHeight;
 }
 resize();
-window.addEventListener('resize', resize);
+window.addEventListener('resize',resize);
 
-// ---- PERSISTENT STATE ----
-let totalCredits = parseInt(localStorage.getItem('ds_credits')||'0');
-let ownedUpgrades = JSON.parse(localStorage.getItem('ds_upgrades')||'[]');
-function saveState(){
-  localStorage.setItem('ds_credits', totalCredits);
-  localStorage.setItem('ds_upgrades', JSON.stringify(ownedUpgrades));
+/* ── Audio ── */
+let AC=null;
+let MUTED=false;
+function getAC(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}}if(AC.state==='suspended')AC.resume().catch(()=>{});return AC;}
+function playTone(freq,freq2,dur,vol,type='sine'){
+  if(MUTED)return;
+  const ac=getAC();if(!ac)return;
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.type=type;o.frequency.setValueAtTime(freq,ac.currentTime);
+  if(freq2)o.frequency.exponentialRampToValueAtTime(freq2,ac.currentTime+dur);
+  g.gain.setValueAtTime(vol,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+dur);
+  o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+dur);
+}
+function playNoise(dur,vol){
+  if(MUTED)return;
+  const ac=getAC();if(!ac)return;
+  const sr=ac.sampleRate,buf=ac.createBuffer(1,sr*dur,sr),d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*vol;
+  const s=ac.createBufferSource(),g=ac.createGain();
+  g.gain.setValueAtTime(vol,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+dur);
+  s.buffer=buf;s.connect(g);g.connect(ac.destination);s.start();
+}
+function playImpact(intensity){
+  playNoise(0.08+intensity*0.05,Math.min(0.6,intensity*0.3));
+  playTone(80,30,0.2,0.08);
+}
+function playDrill(){playNoise(0.06,0.25);playTone(300,180,0.08,0.05,'sawtooth');}
+function playSonar(radius){
+  const freqMod=0.5+radius/500;
+  playTone(900*freqMod,150*freqMod,1.1,0.18);
+  playTone(1200*freqMod,80*freqMod,0.8,0.07);
+}
+function playBoost(){playNoise(0.15,0.4);playTone(120,60,0.4,0.12,'sawtooth');}
+function playCreatureNear(){playTone(80+Math.random()*40,40,1.5+Math.random(),0.04,'sine');}
+function playPickup(type){const freqs=[0,0,600,800,1100,1400];playTone(freqs[type]||500,freqs[type]*1.5||700,0.2,0.08);}
+function playAmbientCave(){
+  const ac=getAC();if(!ac)return;
+  const f=25+Math.random()*60;
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.type='sine';o.frequency.setValueAtTime(f,ac.currentTime);
+  o.frequency.setValueAtTime(f*(0.4+Math.random()*0.8),ac.currentTime+2);
+  g.gain.setValueAtTime(0,ac.currentTime);g.gain.linearRampToValueAtTime(0.03,ac.currentTime+0.5);
+  g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+3+Math.random()*2);
+  o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+5);
 }
 
-// ---- UPGRADE DEFINITIONS ----
-const UPGRADES = [
-  {id:'sonar_amp',name:'SONAR AMPLIFIER',desc:'+50% sonar radius. Enemies hear pulses from farther.',cost:120,effect:'sonar_amp'},
-  {id:'heavy_drill',name:'HEAVY DRILL',desc:'3× faster mining. Massive noise signature.',cost:150,effect:'heavy_drill'},
-  {id:'shock_grapple',name:'SHOCK GRAPPLE',desc:'Grapple stuns creatures on contact. 2s cooldown.',cost:200,effect:'shock_grapple'},
-  {id:'stabilizer',name:'STABILIZER',desc:'50% less movement penalty from cargo weight.',cost:180,effect:'stabilizer'},
-  {id:'silent_engine',name:'SILENT ENGINE',desc:'Engine noise reduced by 70%.',cost:160,effect:'silent_engine'},
-  {id:'hull_plating',name:'HULL PLATING',desc:'Hull starts at 150% and absorbs 30% more damage.',cost:220,effect:'hull_plating'},
-  {id:'fuel_cell',name:'FUEL CELL+',desc:'Fuel capacity increased by 60%.',cost:140,effect:'fuel_cell'},
-  {id:'echo_shield',name:'ECHO SHIELD',desc:'Sonar pulses no longer spawn Echo Phantoms.',cost:300,effect:'echo_shield'},
-  {id:'cargo_magnet',name:'CARGO MAGNET',desc:'Auto-collects nearby minerals.',cost:250,effect:'cargo_magnet'},
+/* ══════════════════════════════════════════
+   PERSISTENT STATE  (localStorage-backed)
+   ══════════════════════════════════════════ */
+const SAVE_KEY='ds2_save';
+function defaultSave(){
+  return {
+    totalCredits:0,
+    // Tiered numeric upgrades (each has levels 0..maxLevel)
+    upFuel:0,       // extra fuel capacity tiers
+    upHull:0,       // extra hull tiers
+    upSonar:0,      // sonar radius tiers
+    upCargo:0,      // cargo capacity tiers
+    upDrill:0,      // drill speed tiers
+    upSilent:0,     // silent engine tiers
+    upStabilizer:0, // weight penalty reduction tiers
+    // One-shot boolean upgrades
+    upShockGrapple:false,
+    upEchoShield:false,
+    upCargoMagnet:false,
+  };
+}
+let SAVE=Object.assign(defaultSave(),JSON.parse(localStorage.getItem(SAVE_KEY)||'{}'));
+function writeSave(){localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE));}
+
+/* ── Upgrade catalogue ── */
+const SHOP=[
+  {id:'upFuel',    name:'FUEL CELL',   maxLv:5, baseCost:80,  costMul:1.6,
+   desc:lv=>`Fuel capacity +${20*lv}%`,
+   apply:s=>({ maxFuelMul: 1+s.upFuel*0.2 }) },
+  {id:'upHull',    name:'HULL PLATING',maxLv:5, baseCost:100, costMul:1.7,
+   desc:lv=>`Hull +${25*lv}% · damage -${10*lv}%`,
+   apply:s=>({ maxHullMul:1+s.upHull*0.25, hullDamMul:1-s.upHull*0.10 })},
+  {id:'upSonar',   name:'SONAR AMP',   maxLv:5, baseCost:90,  costMul:1.6,
+   desc:lv=>`Reveal radius +${15*lv}% · linger +${0.4*lv}s`,
+   apply:s=>({ sonarRadMul:1+s.upSonar*0.15, sonarLingerAdd:s.upSonar*0.4 })},
+  {id:'upCargo',   name:'CARGO HOLD',  maxLv:4, baseCost:110, costMul:1.55,
+   desc:lv=>`Max cargo +${25*lv}%`,
+   apply:s=>({ maxCargoMul:1+s.upCargo*0.25 })},
+  {id:'upDrill',   name:'HEAVY DRILL', maxLv:4, baseCost:130, costMul:1.7,
+   desc:lv=>`Drill ${['Normal','1.5×','2×','3×','4×'][lv]} speed · +noise`,
+   apply:s=>({ drillMul:[1,1.5,2,3,4][s.upDrill], drillNoiseMul:[1,1.2,1.4,1.6,2][s.upDrill] })},
+  {id:'upSilent',  name:'SILENT ENGINE',maxLv:3,baseCost:140, costMul:1.8,
+   desc:lv=>`Engine noise -${30*lv}%`,
+   apply:s=>({ engineNoiseMul:1-s.upSilent*0.30 })},
+  {id:'upStabilizer',name:'STABILIZER',maxLv:3,baseCost:160, costMul:1.75,
+   desc:lv=>`Weight penalty -${35*lv}%`,
+   apply:s=>({ stabMul:1-s.upStabilizer*0.35 })},
+  {id:'upShockGrapple',name:'SHOCK GRAPPLE',maxLv:1,baseCost:220,costMul:1,
+   desc:_=>'Grapple stuns enemies (2s)',
+   apply:s=>({ shockGrapple:s.upShockGrapple })},
+  {id:'upEchoShield',  name:'ECHO SHIELD',   maxLv:1,baseCost:300,costMul:1,
+   desc:_=>'Sonar no longer spawns Echo Phantoms',
+   apply:s=>({ echoShield:s.upEchoShield })},
+  {id:'upCargoMagnet', name:'CARGO MAGNET',  maxLv:1,baseCost:260,costMul:1,
+   desc:_=>'Auto-collect minerals within 70px',
+   apply:s=>({ cargoMagnet:s.upCargoMagnet })},
 ];
+function getUpgCost(item){
+  const cur = (typeof SAVE[item.id]==='boolean') ? (SAVE[item.id]?1:0) : SAVE[item.id];
+  return Math.round(item.baseCost * Math.pow(item.costMul, cur));
+}
+function computeStats(){
+  // Merge all upgrade effects into one flat object
+  let merged={
+    maxFuelMul:1,maxHullMul:1,hullDamMul:1,sonarRadMul:1,sonarLingerAdd:0,
+    maxCargoMul:1,drillMul:1,drillNoiseMul:1,engineNoiseMul:1,stabMul:1,
+    shockGrapple:false,echoShield:false,cargoMagnet:false
+  };
+  for(const item of SHOP){const r=item.apply(SAVE);Object.assign(merged,r);}
+  return merged;
+}
 
-// ---- GAME STATE ----
-let gameState = 'title'; // title, playing, dead, extracted, upgrading
-let G; // game instance
+/* ══════════════════════════════════════
+   GAME ENGINE
+   ══════════════════════════════════════ */
+const TILE=28;
+const W_TILES=118, H_TILES=280;
 
-// ---- GAME CLASS ----
-class DeepSignalGame {
+class Game{
   constructor(){
-    this.W = canvas.width;
-    this.H = canvas.height;
+    this.running=true;
+    this.stats=computeStats();
+    // Sonar trail canvas – persistent fade texture
+    sCtx.clearRect(0,0,cvSonar.width,cvSonar.height);
     // Camera
-    this.camX = 0;
-    this.camY = 0;
-    this.camTargetX = 0;
-    this.camTargetY = 0;
+    this.cx=0;this.cy=0;
+    // Shake
+    this.shakeX=0;this.shakeY=0;
+    this._shakeQueue=[]; // [{amp,freq,dur,t}]
     // World
-    this.TILE = 28;
-    this.worldW = 120;
-    this.worldH = 320;
-    this.tiles = [];
-    this.minerals = [];
-    this.particles = [];
-    this.sonarWaves = [];
-    this.revealedTiles = new Map(); // key -> fade timer
-    this.enemies = [];
-    this.extractPoint = {x:0,y:0};
-    this.extractVisible = 0;
-    this.extractPulseTimer = 0;
-    // Player
-    this.rover = this.createRover();
+    this.tiles=[];
+    this.particles=[];
+    this.sonarRings=[]; // {wx,wy,r,maxR,speed,color,linger,born}
+    this.revMap=new Map(); // "tx,ty" -> fadeTimer (sec)
+    this.mineralFloaters=[]; // glowing float particles from minerals
+    this.enemies=[];
+    this.extractPt={x:0,y:0};
+    // Rover
+    this.rover={x:0,y:0,vx:0,vy:0,w:18,h:11,angle:0,
+      fuel:100,maxFuel:100,hull:100,maxHull:100,cargo:0,maxCargo:100};
     // Grapple
-    this.grapple = {active:false,x:0,y:0,targetX:0,targetY:0,attached:false,attachX:0,attachY:0,stunEnemy:null};
-    // Input
-    this.keys = {};
-    this.mouse = {x:0,y:0,down:false,justDown:false};
-    // Timers
-    this.sonarCooldown = 0;
-    this.sonarMaxCool = 2.2;
-    this.drillTimer = 0;
-    this.boostCooldown = 0;
-    this.noiseLevel = 0;
-    this.noiseFade = 0;
-    this.alertTimer = 0;
-    this.alertMsg = '';
-    this.depth = 0;
-    this.runCredits = 0;
-    this.runTime = 0;
-    this.deepestDepth = 0;
-    this.enemiesKilled = 0;
-    this.currentBiome = 'VOID CAVES';
-    this.biomeBannerTimer = 0;
-    this.biomeBannerText = '';
-    this.biomeBannerColor = '#0ff';
-    this.ambientTimer = Math.random()*5;
-    this.shakeX = 0;
-    this.shakeY = 0;
-    this.shakeTimer = 0;
-    this.flashTimer = 0;
-    this.flashColor = '#f00';
-    this.warningTimer = 0;
-    // Apply upgrade effects
-    this.applyUpgrades();
-    // Generate world
-    this.generateWorld();
-    // Events
-    this.setupInput();
-    this.lastTime = performance.now();
-    this.running = true;
+    this.grapple={on:false,x:0,y:0,vx:0,vy:0,attached:false,ax:0,ay:0};
+    // Inputs
+    this.keys={};this.mx=0;this.my=0;
+    // Timers / state
+    this.sonarCD=0; this.sonarMaxCD=2.0;
+    this.drillTimer=0;
+    this.boostCD=0;
+    this.drillSparking=false; // for spark emitter
+    this.drillSparkTimer=0;
+    this.drillSparks=[];
+    // noiseLevel: 0..1, decays over time
+    this.noiseLevel=0;
+    this._noisePeak=0;   // peak this frame, for enemy hearing
+    this._noiseDecay=0;  // how fast to decay
+    // run stats
+    this.runCredits=0;
+    this.runTime=0;
+    this.maxDepth=0;
+    this.depth=0;
+    // biome
+    this.biome='';
+    this.biomeTimer=0;
+    // extract ring
+    this.exPulse=0;
+    // ambient timer
+    this.ambTimer=3+Math.random()*4;
+    // Alert
+    this._alertTO=null;
+    // Flash
+    this.flashCol='#f00';this.flashT=0;
+    // Generate
+    this._gen();
+    this._applyUpgrades();
+    this._setupInput();
+    this.lastT=performance.now();
   }
 
-  applyUpgrades(){
-    this.upgradeSonarAmp = ownedUpgrades.includes('sonar_amp');
-    this.upgradeHeavyDrill = ownedUpgrades.includes('heavy_drill');
-    this.upgradeShockGrapple = ownedUpgrades.includes('shock_grapple');
-    this.upgradeStabilizer = ownedUpgrades.includes('stabilizer');
-    this.upgradeSilentEngine = ownedUpgrades.includes('silent_engine');
-    this.upgradeHullPlating = ownedUpgrades.includes('hull_plating');
-    this.upgradeFuelCell = ownedUpgrades.includes('fuel_cell');
-    this.upgradeEchoShield = ownedUpgrades.includes('echo_shield');
-    this.upgradeCargoMagnet = ownedUpgrades.includes('cargo_magnet');
+  _applyUpgrades(){
+    const s=this.stats;
+    const r=this.rover;
+    r.maxFuel=Math.round(100*s.maxFuelMul);   r.fuel=r.maxFuel;
+    r.maxHull=Math.round(100*s.maxHullMul);   r.hull=r.maxHull;
+    r.maxCargo=Math.round(100*s.maxCargoMul);
   }
 
-  createRover(){
-    const maxFuel = this.upgradeFuelCell ? 160 : 100;
-    const maxHull = this.upgradeHullPlating ? 150 : 100;
-    return {
-      x: 0, y: 0,
-      vx: 0, vy: 0,
-      w: 18, h: 12,
-      fuel: maxFuel, maxFuel,
-      hull: maxHull, maxHull,
-      cargo: 0, maxCargo: 100,
-      thrust: 280,
-      angle: 0,
-    };
+  /* ──────────────── WORLD GEN ──────────────── */
+  _gen(){
+    const W=W_TILES,H=H_TILES;
+    const T=TILE;
+    const n=[];
+    for(let y=0;y<H;y++){n[y]=[];for(let x=0;x<W;x++)n[y][x]=Math.random()<0.53?1:0;}
+    for(let y=0;y<H;y++){n[y][0]=n[y][W-1]=1;}
+    for(let x=0;x<W;x++){n[0][x]=n[H-1][x]=1;}
+    for(let it=0;it<5;it++){
+      const m=[];
+      for(let y=0;y<H;y++){m[y]=[];for(let x=0;x<W;x++){
+        let c=0;
+        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const ny=y+dy,nx=x+dx;if(ny<0||ny>=H||nx<0||nx>=W)c++;else if(n[ny][nx])c++;}
+        m[y][x]=c>=5?1:0;
+      }}
+      for(let y=0;y<H;y++)for(let x=0;x<W;x++)n[y][x]=m[y][x];
+    }
+    const cx=Math.floor(W/2);
+    // Carve entry + main tunnel
+    for(let y=1;y<16;y++)for(let x=cx-6;x<=cx+6;x++)if(x>0&&x<W-1)n[y][x]=0;
+    let tx=cx,ty=16;
+    while(ty<H-5){
+      const r=3+Math.floor(Math.random()*3);
+      for(let dy=-r;dy<=r;dy++)for(let dx=-r-1;dx<=r+1;dx++){const ny=ty+dy,nx=tx+dx;if(ny>0&&ny<H-1&&nx>0&&nx<W-1)n[ny][nx]=0;}
+      tx+=Math.floor((Math.random()-0.5)*6);tx=Math.max(8,Math.min(W-9,tx));
+      ty+=Math.floor(Math.random()*5)+2;
+    }
+    // Assign tiles
+    this.tiles=[];
+    for(let y=0;y<H;y++){this.tiles[y]=[];for(let x=0;x<W;x++){
+      let tile=n[y][x];
+      if(tile===1&&y>20){
+        const df=y/H;const r=Math.random();
+        const bz=Math.floor(y/70);
+        if(bz===0){if(r<0.045)tile=2;else if(r<0.06&&df>0.18)tile=3;}
+        else if(bz===1){if(r<0.07)tile=2;else if(r<0.105)tile=3;else if(r<0.115)tile=4;}
+        else{if(r<0.06)tile=2;else if(r<0.09)tile=3;else if(r<0.108)tile=4;else if(r<0.115)tile=5;}
+      }
+      this.tiles[y][x]=tile;
+    }}
+    // Clear top
+    for(let x=cx-4;x<=cx+4;x++)if(x>0&&x<W)this.tiles[1][x]=0;
+    // Rover start
+    this.rover.x=cx*T+T/2;this.rover.y=3*T;
+    this.extractPt={x:cx*T,y:T*1.5};
+    // Spawn enemies in dark zones (unrevealed)
+    this._spawnEnemies();
   }
 
-  generateWorld(){
-    const T = this.TILE;
-    const W = this.worldW;
-    const H = this.worldH;
-    this.tiles = [];
-    for(let y=0;y<H;y++){
-      this.tiles[y]=[];
-      for(let x=0;x<W;x++){
-        this.tiles[y][x]=0; // 0=air,1=rock,2+=mineral
-      }
-    }
-    // Carve caves using cellular automata + tunnels
-    // Start with noise
-    const noise = [];
-    for(let y=0;y<H;y++){
-      noise[y]=[];
-      for(let x=0;x<W;x++){
-        noise[y][x] = Math.random()<0.52?1:0;
-      }
-    }
-    // Borders solid
-    for(let x=0;x<W;x++){noise[0][x]=1;noise[H-1][x]=1;}
-    for(let y=0;y<H;y++){noise[y][0]=1;noise[y][W-1]=1;}
-    // Cellular automata
-    for(let iter=0;iter<5;iter++){
-      const n2=[];
-      for(let y=0;y<H;y++){
-        n2[y]=[];
-        for(let x=0;x<W;x++){
-          let c=0;
-          for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
-            const ny=y+dy,nx=x+dx;
-            if(ny<0||ny>=H||nx<0||nx>=W) c++;
-            else if(noise[ny][nx]) c++;
-          }
-          n2[y][x]=(c>=5)?1:0;
-        }
-      }
-      for(let y=0;y<H;y++) for(let x=0;x<W;x++) noise[y][x]=n2[y][x];
-    }
-    // Carve start area (top center)
-    const cx = Math.floor(W/2);
-    for(let y=2;y<14;y++) for(let x=cx-5;x<=cx+5;x++) noise[y][x]=0;
-    // Carve main tunnel downward
-    let tx=cx,ty=14;
-    while(ty<H-4){
-      for(let dy=-2;dy<=2;dy++) for(let dx=-3;dx<=3;dx++){
-        const ny=ty+dy,nx=tx+dx;
-        if(ny>0&&ny<H-1&&nx>0&&nx<W-1) noise[ny][nx]=0;
-      }
-      tx+=Math.floor((Math.random()-0.5)*4);
-      tx=Math.max(8,Math.min(W-9,tx));
-      ty+=Math.floor(Math.random()*4)+1;
-    }
-    // Place minerals based on depth
-    for(let y=0;y<H;y++){
-      for(let x=0;x<W;x++){
-        this.tiles[y][x]=noise[y][x];
-        if(noise[y][x]===1 && y>15){
-          const depthFactor = y/H;
-          const r = Math.random();
-          // Biome at deeper layers
-          const biomeY = Math.floor(y/80);
-          if(biomeY===0){// void caves
-            if(r<0.04) this.tiles[y][x]=2; // common mineral
-            else if(r<0.055&&depthFactor>0.2) this.tiles[y][x]=3; // rare crystal
-          } else if(biomeY===1){// crystal grave
-            if(r<0.07) this.tiles[y][x]=2;
-            else if(r<0.10) this.tiles[y][x]=3;
-            else if(r<0.11) this.tiles[y][x]=4; // energy core
-          } else {// flesh / machine depths
-            if(r<0.06) this.tiles[y][x]=2;
-            else if(r<0.09) this.tiles[y][x]=3;
-            else if(r<0.105) this.tiles[y][x]=4;
-            else if(r<0.112) this.tiles[y][x]=5; // artifact
-          }
-        }
-      }
-    }
-    // Ensure top row air for entry
-    for(let x=cx-3;x<=cx+3;x++) if(x>0&&x<W) this.tiles[1][x]=0;
-    // Rover start position
-    this.rover.x = cx*T+T/2;
-    this.rover.y = 3*T;
-    this.rover.vx=0;this.rover.vy=0;
-    // Extract point at top
-    this.extractPoint.x = cx*T;
-    this.extractPoint.y = 1*T;
-    // Spawn initial enemies
-    this.spawnInitialEnemies();
-  }
-
-  spawnInitialEnemies(){
-    const T=this.TILE;
-    const W=this.worldW;
-    const H=this.worldH;
-    // Spawn echo stalkers at various depths
-    for(let i=0;i<8;i++){
-      const depth=0.15+Math.random()*0.6;
-      const y=Math.floor(depth*H);
-      const x=Math.floor(Math.random()*W);
-      if(!this.tiles[y]||this.tiles[y][x]!==0) continue;
-      this.enemies.push(this.createEnemy('echo_stalker',x*T+T/2,y*T+T/2));
+  _spawnEnemies(){
+    const W=W_TILES,H=H_TILES,T=TILE;
+    for(let i=0;i<10;i++){
+      const dy=0.18+Math.random()*0.55;
+      const y=Math.floor(dy*H);const x=Math.floor(Math.random()*W);
+      if(!this.tiles[y]||this.tiles[y][x]!==0)continue;
+      this.enemies.push(this._mkEnemy('echo_stalker',x*T+T/2,y*T+T/2));
     }
     for(let i=0;i<5;i++){
-      const y=Math.floor((0.3+Math.random()*0.5)*H);
-      const x=Math.floor(Math.random()*W);
-      if(!this.tiles[y]||this.tiles[y][x]!==0) continue;
-      this.enemies.push(this.createEnemy('burrow_leech',x*T+T/2,y*T+T/2));
+      const y=Math.floor((0.3+Math.random()*0.5)*H);const x=Math.floor(Math.random()*W);
+      if(!this.tiles[y]||this.tiles[y][x]!==0)continue;
+      this.enemies.push(this._mkEnemy('burrow_leech',x*T+T/2,y*T+T/2));
     }
     for(let i=0;i<2;i++){
-      const y=Math.floor((0.6+Math.random()*0.35)*H);
-      const x=Math.floor(Math.random()*W);
-      if(!this.tiles[y]||this.tiles[y][x]!==0) continue;
-      this.enemies.push(this.createEnemy('hollow_titan',x*T+T/2,y*T+T/2));
+      const y=Math.floor((0.6+Math.random()*0.3)*H);const x=Math.floor(Math.random()*W);
+      if(!this.tiles[y]||this.tiles[y][x]!==0)continue;
+      this.enemies.push(this._mkEnemy('hollow_titan',x*T+T/2,y*T+T/2));
     }
   }
 
-  createEnemy(type,x,y){
-    const base = {x,y,vx:0,vy:0,type,alert:0,health:1,stun:0,seen:0,revealTimer:0,lastHeardX:x,lastHeardY:y,wanderTimer:Math.random()*3,wanderDx:0,wanderDy:0};
-    if(type==='echo_stalker') return {...base,health:2,speed:45,detectRange:280,size:10,color:'#f44',aggroTime:0};
-    if(type==='burrow_leech') return {...base,health:1,speed:120,detectRange:200,size:8,color:'#fa0',burrow:true,burrowTimer:0};
-    if(type==='hollow_titan') return {...base,health:6,speed:28,detectRange:400,size:28,color:'#f0f',awakened:false,awakeThreshold:0.7};
-    if(type==='echo_phantom') return {...base,health:1,speed:90,detectRange:350,size:12,color:'#0ff',alpha:0.7,phaseTimer:0};
+  /* ──────────────── ECHO STALKER AI (state machine) ──────────────── */
+  /*
+    States:
+      IDLE     – wandering randomly in dark zone, low speed
+      ALERTED  – heard something, orienting toward sound source
+      HUNTING  – actively charging last-heard position at high speed
+      SEARCHING– arrived at last-heard but lost contact, sweeping area
+      FLEEING  – stunned/retreating (shock grapple)
+
+    Hearing system:
+      - Has a "hearing sensitivity" value (0..1) that scales with noiseLevel
+      - Tracks a "sound memory" position + decay
+      - Hears differently based on distance vs detectRange
+      - Only transitions to HUNTING if confirmed hearing multiple times
+  */
+  _mkEnemy(type,x,y){
+    const base={
+      x,y,vx:0,vy:0,type,
+      state:'IDLE',       // state machine
+      stun:0,
+      // hearing
+      lastHeardX:x, lastHeardY:y,
+      soundMemory:0,      // 0..1 – how "convinced" it is something is there
+      heardConfirmCount:0,// how many frames it's heard noise
+      // wander
+      wanderAngle:Math.random()*Math.PI*2,
+      wanderTimer:Math.random()*3,
+      // search sweep
+      searchAngle:0, searchRadius:80, searchTimer:0,
+      // animation
+      animT:Math.random()*10,
+      revealTimer:0,
+      // visual state
+      eyeGlow:0,
+    };
+    if(type==='echo_stalker') return{...base,hp:2,maxHp:2,speed:50,detectRange:260,size:11,col:'#f44',aggroSpeed:140};
+    if(type==='burrow_leech') return{...base,hp:1,maxHp:1,speed:100,detectRange:190,size:8, col:'#f90',aggroSpeed:220,burrowPhase:0};
+    if(type==='hollow_titan') return{...base,hp:8,maxHp:8,speed:22,detectRange:420,size:30,col:'#c0f',aggroSpeed:60,state:'SLEEPING'};
+    if(type==='echo_phantom') return{...base,hp:1,maxHp:1,speed:70,detectRange:300,size:13,col:'#0ff',aggroSpeed:160,phase:0,phaseT:0};
     return base;
   }
 
-  setupInput(){
-    this._onKey = e=>{
-      if(gameState!=='playing') return;
-      this.keys[e.code]=true;
-      if(e.code==='Space'){e.preventDefault();this.fireSonar();}
-      if(e.code==='KeyQ'){e.preventDefault();this.emergencyBoost();}
-      if(e.code==='KeyF'){e.preventDefault();this.jettisonCargo();}
-      if(e.code==='Escape'){this.beginExtraction();}
-    };
-    this._onKeyUp = e=>{this.keys[e.code]=false;};
-    this._onMouseMove = e=>{
-      const r=canvas.getBoundingClientRect();
-      this.mouse.x=e.clientX-r.left;
-      this.mouse.y=e.clientY-r.top;
-    };
-    this._onMouseDown = e=>{
-      if(gameState!=='playing') return;
-      this.mouse.down=true;
-      this.mouse.justDown=true;
-      this.launchGrapple(e.clientX, e.clientY);
-    };
-    this._onMouseUp = e=>{this.mouse.down=false;this.releaseGrapple();};
-    window.addEventListener('keydown',this._onKey);
-    window.addEventListener('keyup',this._onKeyUp);
-    canvas.addEventListener('mousemove',this._onMouseMove);
-    canvas.addEventListener('mousedown',this._onMouseDown);
-    canvas.addEventListener('mouseup',this._onMouseUp);
-  }
+  _updateEnemyAI(e,dt){
+    const T=TILE;
+    const r=this.rover;
+    const dist=Math.hypot(e.x-r.x,e.y-r.y);
 
-  destroy(){
-    window.removeEventListener('keydown',this._onKey);
-    window.removeEventListener('keyup',this._onKeyUp);
-    canvas.removeEventListener('mousemove',this._onMouseMove);
-    canvas.removeEventListener('mousedown',this._onMouseDown);
-    canvas.removeEventListener('mouseup',this._onMouseUp);
-    this.running=false;
-  }
+    e.animT+=dt;
+    if(e.stun>0){e.stun-=dt;e.vx*=0.85;e.vy*=0.85;e.state='FLEEING';return;}
+    if(e.state==='FLEEING'){e.state='IDLE';} // recover
 
-  fireSonar(){
-    if(this.sonarCooldown>0) return;
-    const amp = this.upgradeSonarAmp ? 1.5 : 1.0;
-    const radius = 180*amp;
-    this.sonarWaves.push({x:this.rover.x,y:this.rover.y,r:0,maxR:radius,speed:200,alpha:1.0,type:'player'});
-    this.addNoise(0.35*(this.upgradeSonarAmp?1.4:1.0));
-    this.revealAroundPoint(this.rover.x,this.rover.y,radius,2.0);
-    this.sonarCooldown = this.sonarMaxCool;
-    // Echo phantom may spawn
-    if(!this.upgradeEchoShield && Math.random()<0.12+this.depth/8000){
-      const angle=Math.random()*Math.PI*2;
-      const dist=radius*0.8;
-      this.enemies.push(this.createEnemy('echo_phantom',
-        this.rover.x+Math.cos(angle)*dist,
-        this.rover.y+Math.sin(angle)*dist));
+    /* ─ HEARING CHECK ─
+       The enemy "hears" if:
+         - noiseLevel > threshold (depends on dist vs detectRange)
+         - AND there's actual recent noise (this.noiseLevel freshly spiked)
+    */
+    const hearThresh=0.18;
+    const hearFactor=Math.max(0,1-(dist/e.detectRange));
+    const hearsNow=(this.noiseLevel>hearThresh)&&(dist<e.detectRange*this.noiseLevel*1.6);
+
+    if(hearsNow){
+      e.soundMemory=Math.min(1,e.soundMemory+dt*1.2*hearFactor);
+      e.heardConfirmCount++;
+      e.lastHeardX=r.x; e.lastHeardY=r.y;
+      e.eyeGlow=Math.min(1,e.eyeGlow+dt*3);
+    } else {
+      e.soundMemory=Math.max(0,e.soundMemory-dt*(e.state==='HUNTING'?0.08:0.25));
+      e.heardConfirmCount=Math.max(0,e.heardConfirmCount-1);
+      e.eyeGlow=Math.max(0,e.eyeGlow-dt*1.5);
     }
-    this.playSound('sonar');
-    this.alertEnemiesAtPos(this.rover.x, this.rover.y, 0.6*(this.upgradeSonarAmp?1.3:1.0));
+
+    /* ─ HOLLOW TITAN special: SLEEPING until huge noise spike ─ */
+    if(e.type==='hollow_titan'){
+      if(e.state==='SLEEPING'){
+        if(this.noiseLevel>0.65&&dist<e.detectRange){
+          e.state='ALERTED';
+          this._showAlert('⚠ TITAN AWAKENS',2.5);
+          this.triggerShake(8,12,0.6);
+          playTone(40,25,2.5,0.15,'sawtooth');
+        }
+        return;
+      }
+    }
+
+    /* ─ Echo Phantom: pulses sonar from its own position ─ */
+    if(e.type==='echo_phantom'){
+      e.phaseT=(e.phaseT||0)+dt;
+      if(e.phaseT>1.8){
+        e.phaseT=0;
+        this._addRing(e.x,e.y,0,100,160,'#0ff7',1.0,false);
+        this._revealAround(e.x,e.y,100,1.2);
+        this._addNoise(0.08,'phantom');
+      }
+    }
+
+    /* ─ STATE MACHINE ─ */
+    switch(e.state){
+      case 'IDLE':{
+        // Random wander in dark area, slow
+        e.wanderTimer-=dt;
+        if(e.wanderTimer<0){
+          e.wanderTimer=1.5+Math.random()*3;
+          e.wanderAngle+=(-0.8+Math.random()*1.6)*Math.PI;
+        }
+        const wx=Math.cos(e.wanderAngle)*e.speed*0.4;
+        const wy=Math.sin(e.wanderAngle)*e.speed*0.4;
+        e.vx+=(wx-e.vx)*dt*3;e.vy+=(wy-e.vy)*dt*3;
+        // Transition: if sound memory crosses threshold → ALERTED
+        if(e.soundMemory>0.35) e.state='ALERTED';
+        break;
+      }
+      case 'ALERTED':{
+        // Freeze briefly, orient toward sound, low speed
+        e.vx*=0.7;e.vy*=0.7;
+        if(e.soundMemory>0.65&&e.heardConfirmCount>8) e.state='HUNTING';
+        if(e.soundMemory<0.1) e.state='IDLE';
+        break;
+      }
+      case 'HUNTING':{
+        // Charge toward last-heard position at high speed
+        const tdx=e.lastHeardX-e.x, tdy=e.lastHeardY-e.y;
+        const tl=Math.hypot(tdx,tdy)||1;
+        const spd=e.aggroSpeed*(0.8+this.noiseLevel*0.5);
+        e.vx+=(tdx/tl*spd-e.vx)*dt*4;
+        e.vy+=(tdy/tl*spd-e.vy)*dt*4;
+        // Arrived at last-heard position?
+        if(tl<50){e.state='SEARCHING';e.searchTimer=3+Math.random()*2;e.searchAngle=Math.random()*Math.PI*2;}
+        // Lost track completely → idle
+        if(e.soundMemory<0.05) e.state='IDLE';
+        break;
+      }
+      case 'SEARCHING':{
+        // Sweep around last-heard point
+        e.searchTimer-=dt;
+        e.searchAngle+=dt*1.8;
+        const sx=e.lastHeardX+Math.cos(e.searchAngle)*e.searchRadius;
+        const sy=e.lastHeardY+Math.sin(e.searchAngle)*e.searchRadius;
+        const sdx=sx-e.x,sdy=sy-e.y;const sl=Math.hypot(sdx,sdy)||1;
+        e.vx+=(sdx/sl*e.speed*0.7-e.vx)*dt*3;
+        e.vy+=(sdy/sl*e.speed*0.7-e.vy)*dt*3;
+        if(e.searchTimer<0) e.state='IDLE';
+        if(e.soundMemory>0.6) e.state='HUNTING';
+        break;
+      }
+      case 'FLEEING':break;
+    }
+
+    // Move + wall collision
+    e.x+=e.vx*dt; e.y+=e.vy*dt;
+    const etx=Math.floor(e.x/T),ety=Math.floor(e.y/T);
+    if(e.type!=='burrow_leech'&&ety>=0&&ety<H_TILES&&etx>=0&&etx<W_TILES&&this.tiles[ety][etx]>0){
+      e.x-=e.vx*dt;e.y-=e.vy*dt;
+      e.wanderAngle+=Math.PI*(0.5+Math.random());
+      e.vx=Math.cos(e.wanderAngle)*Math.abs(e.vx);
+      e.vy=Math.sin(e.wanderAngle)*Math.abs(e.vy);
+    }
+
+    // Contact damage
+    if(dist<e.size+10){
+      const dmg=e.type==='hollow_titan'?22:(e.type==='echo_phantom'?6:9);
+      this._damageRover(dmg);
+      const push=45;const pd=Math.hypot(e.x-r.x,e.y-r.y)||1;
+      e.x+=(e.x-r.x)/pd*push;e.y+=(e.y-r.y)/pd*push;
+      this._addNoise(0.28,'impact');
+      this._alertAt(r.x,r.y,0.5);
+    }
   }
 
-  revealAroundPoint(wx,wy,radius,duration){
-    const T=this.TILE;
+  /* ──────────────── SCREEN SHAKE ──────────────── */
+  // triggerShake(amplitude, frequency_hz, duration_sec)
+  triggerShake(amp,freq,dur){
+    this._shakeQueue.push({amp,freq,dur,t:0});
+  }
+  _processShake(dt){
+    this.shakeX=0;this.shakeY=0;
+    this._shakeQueue=this._shakeQueue.filter(s=>{
+      s.t+=dt;
+      const decay=1-(s.t/s.dur);
+      if(decay<=0)return false;
+      const a=Math.sin(s.t*s.freq*Math.PI*2)*s.amp*decay;
+      const b=Math.cos(s.t*s.freq*Math.PI*2+1.3)*s.amp*decay*0.7;
+      this.shakeX+=a;this.shakeY+=b;
+      return true;
+    });
+  }
+
+  /* ──────────────── NOISE SYSTEM ──────────────── */
+  // source: 'drill','boost','impact','sonar','engine','phantom'
+  _addNoise(amount,source=''){
+    const silent=this.stats.engineNoiseMul;
+    const mult=(source==='engine')?silent:(source==='drill'?this.stats.drillNoiseMul:1.0);
+    this.noiseLevel=Math.min(1,this.noiseLevel+amount*mult);
+    if(this.noiseLevel>this._noisePeak) this._noisePeak=this.noiseLevel;
+    this._noiseDecay=2.0; // reset decay hold
+  }
+  _decayNoise(dt){
+    if(this._noiseDecay>0){this._noiseDecay-=dt;return;}
+    this.noiseLevel=Math.max(0,this.noiseLevel-dt*0.4);
+  }
+  _alertAt(wx,wy,intensity){
+    for(const e of this.enemies){
+      const d=Math.hypot(e.x-wx,e.y-wy);
+      if(d<380*intensity){
+        e.soundMemory=Math.min(1,e.soundMemory+intensity*0.4);
+        e.lastHeardX=wx;e.lastHeardY=wy;
+        if(e.state==='IDLE'&&e.soundMemory>0.3)e.state='ALERTED';
+        if(e.type==='hollow_titan'&&intensity>0.5) e.state='ALERTED';
+      }
+    }
+  }
+
+  /* ──────────────── SONAR SYSTEM ──────────────── */
+  _fireSonar(){
+    if(this.sonarCD>0)return;
+    const s=this.stats;
+    const baseR=170;
+    const radius=Math.round(baseR*s.sonarRadMul);
+    const linger=1.8+s.sonarLingerAdd;
+    // Primary expanding ring
+    this._addRing(this.rover.x,this.rover.y,0,radius,220,'#0ff',1.0,true,linger);
+    // Secondary harmonic ring (delayed, smaller)
+    setTimeout(()=>{
+      if(!this.running)return;
+      this._addRing(this.rover.x,this.rover.y,0,radius*0.6,140,'#0ff6',0.6,false,linger*0.7);
+    },180);
+    // Reveal tiles and paint sonar trail
+    this._revealAround(this.rover.x,this.rover.y,radius,linger);
+    this._paintSonarTrail(this.rover.x,this.rover.y,radius,linger);
+    this._addNoise(0.3,'sonar');
+    this._alertAt(this.rover.x,this.rover.y,0.55*s.sonarRadMul);
+    this.sonarCD=this.sonarMaxCD;
+    playSonar(radius);
+    // Echo phantom spawn
+    if(!s.echoShield&&Math.random()<0.1+this.depth/9000){
+      const a=Math.random()*Math.PI*2;
+      this.enemies.push(this._mkEnemy('echo_phantom',
+        this.rover.x+Math.cos(a)*radius*0.75,
+        this.rover.y+Math.sin(a)*radius*0.75));
+    }
+  }
+
+  _addRing(wx,wy,r,maxR,speed,color,alpha,isMain,linger=1.8){
+    this.sonarRings.push({wx,wy,r:r||1,maxR,speed,color,alpha,isMain,linger,born:performance.now()});
+  }
+
+  // ─── SONAR TRAIL PAINTING (two-canvas system) ───
+  // We paint onto the persistent sonar canvas using additive blending.
+  // A global fade pass is applied each frame so old reveals melt away.
+  _paintSonarTrail(wx,wy,radius,linger){
+    const T=TILE;
+    // Paint glowing tiles onto sonar canvas
+    const cx=innerWidth/2-this.cx;
+    const cy=innerHeight/2-this.cy;
+    // For each tile in range, paint a bright pixel on sonar canvas
     const tilesR=Math.ceil(radius/T)+1;
-    const tx=Math.floor(wx/T), ty=Math.floor(wy/T);
+    const baseTX=Math.floor(wx/T),baseTY=Math.floor(wy/T);
+    sCtx.save();
+    sCtx.translate(cx,cy);
     for(let dy=-tilesR;dy<=tilesR;dy++){
       for(let dx=-tilesR;dx<=tilesR;dx++){
-        const nx=tx+dx, ny=ty+dy;
-        if(nx<0||ny<0||nx>=this.worldW||ny>=this.worldH) continue;
-        const dist=Math.hypot(dx*T,dy*T);
-        if(dist<=radius){
-          const key=`${nx},${ny}`;
-          this.revealedTiles.set(key,(this.revealedTiles.get(key)||0)+duration);
+        const tx=baseTX+dx,ty=baseTY+dy;
+        if(tx<0||ty<0||tx>=W_TILES||ty>=H_TILES)continue;
+        const d=Math.hypot(dx*T,dy*T);
+        if(d>radius)continue;
+        const tile=this.tiles[ty][tx];
+        if(tile===0)continue;
+        const fade=1-(d/radius);
+        const col=tile>1?this._mCol(tile):'#1e3a5a';
+        // Paint each tile as a rect on sonar canvas
+        sCtx.globalAlpha=Math.min(0.95,fade*(tile>1?0.9:0.55));
+        sCtx.fillStyle=col;
+        sCtx.fillRect(tx*T,ty*T,T,T);
+        // Mineral: add glow ring
+        if(tile>1){
+          sCtx.globalAlpha=fade*0.5;
+          sCtx.shadowColor=col;sCtx.shadowBlur=14;
+          sCtx.beginPath();sCtx.arc(tx*T+T/2,ty*T+T/2,T*0.35,0,Math.PI*2);
+          sCtx.fillStyle=col;sCtx.fill();sCtx.shadowBlur=0;
+          // Spawn mineral floater particles
+          if(Math.random()<0.4){
+            this.mineralFloaters.push({
+              wx:tx*T+T/2+(Math.random()-0.5)*T,
+              wy:ty*T+T/2,
+              vx:(Math.random()-0.5)*20,
+              vy:-(15+Math.random()*30),
+              life:1.5+Math.random()*1.5,
+              maxLife:3,
+              col,size:1.5+Math.random()*2
+            });
+          }
         }
       }
     }
+    sCtx.restore();
   }
 
-  alertEnemiesAtPos(wx,wy,intensity){
-    for(const e of this.enemies){
-      const dist=Math.hypot(e.x-wx,e.y-wy);
-      if(dist<350*intensity){
-        e.lastHeardX=wx; e.lastHeardY=wy;
-        e.alert=Math.min(1,e.alert+(0.3+intensity*0.5));
-        if(e.type==='hollow_titan') e.awakened=true;
+  // Called each frame – fades sonar canvas
+  _fadeSonarCanvas(dt){
+    // Fade by drawing a semi-transparent black rect
+    // Rate tuned to give 2-3s of linger
+    const baseRate=0.018+this.stats.sonarLingerAdd*(-0.003);// slower fade with sonar upgrade
+    sCtx.globalAlpha=Math.min(1,baseRate*(dt*60));
+    sCtx.globalCompositeOperation='destination-out';
+    sCtx.fillStyle='rgba(0,0,0,1)';
+    sCtx.fillRect(0,0,cvSonar.width,cvSonar.height);
+    sCtx.globalAlpha=1;
+    sCtx.globalCompositeOperation='source-over';
+    // Sync sonar canvas offset with camera
+    cvSonar.style.transform=`translate(${innerWidth/2-this.cx+this.shakeX}px,${innerHeight/2-this.cy+this.shakeY}px) translate(-${innerWidth/2}px,-${innerHeight/2}px)`;
+  }
+
+  _revealAround(wx,wy,radius,dur){
+    const T=TILE;
+    const tilesR=Math.ceil(radius/T)+1;
+    const bx=Math.floor(wx/T),by=Math.floor(wy/T);
+    for(let dy=-tilesR;dy<=tilesR;dy++){
+      for(let dx=-tilesR;dx<=tilesR;dx++){
+        const tx=bx+dx,ty=by+dy;
+        if(tx<0||ty<0||tx>=W_TILES||ty>=H_TILES)continue;
+        if(Math.hypot(dx*T,dy*T)>radius)continue;
+        const k=`${tx},${ty}`;
+        this.revMap.set(k,Math.max(this.revMap.get(k)||0,dur));
       }
     }
   }
 
-  addNoise(amount){
-    this.noiseLevel=Math.min(1,this.noiseLevel+amount);
-    this.noiseFade=1.5;
-  }
-
-  emergencyBoost(){
-    if(this.boostCooldown>0||this.rover.fuel<15) return;
-    const dx=Math.cos(this.rover.angle), dy=Math.sin(this.rover.angle);
-    this.rover.vx+=dx*400;
-    this.rover.vy+=dy*400;
-    this.rover.fuel-=15;
-    this.boostCooldown=3.5;
-    this.addNoise(0.5);
-    this.alertEnemiesAtPos(this.rover.x,this.rover.y,0.8);
-    this.addParticleBurst(this.rover.x,this.rover.y,20,'#0ff',4);
-    this.shakeScreen(0.15,5);
-  }
-
-  jettisonCargo(){
-    if(this.rover.cargo<=0) return;
-    const lost=this.rover.cargo*0.6;
-    this.rover.cargo=Math.floor(this.rover.cargo*0.4);
-    this.showAlert(`JETTISONED ${Math.floor(lost)} KG`,2);
-    this.addNoise(0.2);
-    this.updateHUD();
-  }
-
-  launchGrapple(mx,my){
-    if(this.grapple.active) return;
-    const wx=mx-canvas.width/2+this.camX;
-    const wy=my-canvas.height/2+this.camY;
-    this.grapple.active=true;
-    this.grapple.attached=false;
-    this.grapple.x=this.rover.x;
-    this.grapple.y=this.rover.y;
-    const dist=Math.hypot(wx-this.rover.x,wy-this.rover.y)||1;
-    this.grapple.vx=(wx-this.rover.x)/dist*600;
-    this.grapple.vy=(wy-this.rover.y)/dist*600;
-    this.grapple.targetX=wx;
-    this.grapple.targetY=wy;
-    this.addNoise(0.05);
-  }
-
-  releaseGrapple(){
-    this.grapple.active=false;
-    this.grapple.attached=false;
-  }
-
-  beginExtraction(){
-    // Check if at extract point
-    const dist=Math.hypot(this.rover.x-this.extractPoint.x,this.rover.y-this.extractPoint.y);
-    if(dist<120){
-      this.doExtract();
-    }
-  }
-
-  doExtract(){
-    crazySdkEvent('stop');
-    crazySdkEvent('happy');
-    this.running=false;
-    const credits=this.runCredits;
-    totalCredits+=credits;
-    saveState();
-    gameState='extracted';
-    document.getElementById('extract-stats').innerHTML=
-      `DEPTH REACHED <span>${Math.floor(this.deepestDepth)}m</span><br>`+
-      `CARGO VALUE <span>${credits} CR</span><br>`+
-      `RUN TIME <span>${Math.floor(this.runTime)}s</span><br>`+
-      `ENEMIES NEAR <span>${this.enemies.filter(e=>e.alert>0.5).length}</span>`;
-    document.getElementById('extract-screen').style.display='flex';
-  }
-
-  doDie(reason){
-    crazySdkEvent('stop');
-    this.running=false;
-    gameState='dead';
-    const credits=Math.floor(this.runCredits*0.3); // lose 70% on death
-    totalCredits+=credits;
-    saveState();
-    this.shakeScreen(0.5,15);
-    document.getElementById('death-stats').innerHTML=
-      `CAUSE <span>${reason}</span><br>`+
-      `DEPTH <span>${Math.floor(this.deepestDepth)}m</span><br>`+
-      `SALVAGED <span>${credits} CR (30%)</span><br>`+
-      `RUN TIME <span>${Math.floor(this.runTime)}s</span>`;
-    document.getElementById('death-screen').style.display='flex';
-  }
-
-  update(dt){
-    if(!this.running) return;
-    this.runTime+=dt;
-    this.W=canvas.width; this.H=canvas.height;
-
-    // Timers
-    if(this.sonarCooldown>0) this.sonarCooldown-=dt;
-    if(this.boostCooldown>0) this.boostCooldown-=dt;
-    if(this.alertTimer>0) this.alertTimer-=dt;
-    if(this.shakeTimer>0){this.shakeTimer-=dt;if(this.shakeTimer<=0){this.shakeX=0;this.shakeY=0;}}
-    else{this.shakeX=(Math.random()-0.5)*this.shakeAmt*2;this.shakeY=(Math.random()-0.5)*this.shakeAmt*2;}
-    if(this.flashTimer>0) this.flashTimer-=dt;
-    if(this.biomeBannerTimer>0) this.biomeBannerTimer-=dt;
-    if(this.ambientTimer>0) this.ambientTimer-=dt; else {this.ambientTimer=3+Math.random()*5; this.playAmbient();}
-    if(this.extractPulseTimer>0) this.extractPulseTimer-=dt; else {this.extractPulseTimer=1.5; this.sonarWaves.push({x:this.extractPoint.x,y:this.extractPoint.y,r:0,maxR:60,speed:80,alpha:0.8,type:'extract'});}
-
-    // Noise decay
-    if(this.noiseFade>0) this.noiseFade-=dt; else this.noiseLevel=Math.max(0,this.noiseLevel-dt*0.3);
-
-    // Rover physics
-    this.updateRover(dt);
-    // Grapple
-    this.updateGrapple(dt);
-    // Enemies
-    this.updateEnemies(dt);
-    // Particles
-    this.particles=this.particles.filter(p=>{p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=0.97;p.vy*=0.97;return p.life>0;});
-    // Sonar waves
-    this.sonarWaves=this.sonarWaves.filter(w=>{w.r+=w.speed*dt;w.alpha=1-(w.r/w.maxR);return w.r<w.maxR;});
-    // Revealed tiles decay
-    for(const[k,v] of this.revealedTiles){
-      const nv=v-dt;
-      if(nv<=0) this.revealedTiles.delete(k);
-      else this.revealedTiles.set(k,nv);
-    }
-    // Drilling
-    if(this.keys['KeyE']) this.tryDrill(dt);
-    // Camera
-    this.camTargetX=this.rover.x;
-    this.camTargetY=this.rover.y;
-    this.camX+=(this.camTargetX-this.camX)*8*dt;
-    this.camY+=(this.camTargetY-this.camY)*8*dt;
-    // Depth
-    const T=this.TILE;
-    this.depth=(this.rover.y/T-2)*2.8;
-    if(this.depth>this.deepestDepth) this.deepestDepth=this.depth;
-    // Biome detection
-    this.detectBiome();
-    // Fuel drain
-    const moving=this.keys['KeyW']||this.keys['ArrowUp']||this.keys['KeyS']||this.keys['ArrowDown']||this.keys['KeyA']||this.keys['ArrowLeft']||this.keys['KeyD']||this.keys['ArrowRight'];
-    const fuelDrainRate = this.upgradeSilentEngine ? 0.6 : 1.0;
-    if(moving) this.rover.fuel=Math.max(0,this.rover.fuel-dt*3*fuelDrainRate);
-    if(this.rover.fuel<=0){this.doDie('FUEL EXHAUSTED'); return;}
-    if(this.rover.hull<=0){this.doDie('HULL BREACH'); return;}
-    // Near extract
-    const distEx=Math.hypot(this.rover.x-this.extractPoint.x,this.rover.y-this.extractPoint.y);
-    this.extractVisible=Math.max(0,1-distEx/400);
-    if(distEx<80 && this.rover.cargo>0){
-      this.revealAroundPoint(this.extractPoint.x,this.extractPoint.y,120,0.5);
-    }
-    // Cargo magnet
-    if(this.upgradeCargoMagnet) this.doCargoMagnet();
-    // Update HUD
-    this.updateHUD();
-    // Warning
-    if(this.noiseLevel>0.7) this.warningTimer+=dt; else this.warningTimer=0;
-    if(this.warningTimer>1.0){
-      const wf=document.getElementById('warning-flash');
-      wf.style.background='radial-gradient(circle,#f005 0%,transparent 70%)';
-      wf.style.opacity=(Math.sin(this.runTime*8)*0.3+0.3).toString();
-    } else {
-      document.getElementById('warning-flash').style.opacity='0';
-    }
-  }
-
-  doCargoMagnet(){
-    for(const m of this.minerals){
-      if(!m.collected){
-        const dist=Math.hypot(m.x-this.rover.x,m.y-this.rover.y);
-        if(dist<80&&this.rover.cargo<this.rover.maxCargo){
-          m.collected=true;
-          const val=this.getMineralValue(m.type);
-          this.rover.cargo=Math.min(this.rover.maxCargo,this.rover.cargo+val);
-          this.runCredits+=val*3;
-          this.addParticleBurst(m.x,m.y,5,'#ff0',2);
-        }
-      }
-    }
-  }
-
-  detectBiome(){
-    const T=this.TILE;
-    const y=Math.floor(this.rover.y/T);
-    let biome,color;
-    if(y<80){biome='VOID CAVES';color='#0ff';}
-    else if(y<160){biome='CRYSTAL GRAVE';color='#f0f';}
-    else if(y<240){biome='ASH TUNNELS';color='#888';}
-    else {biome='MACHINE DEPTHS';color='#0f8';}
-    if(biome!==this.currentBiome){
-      this.currentBiome=biome;
-      this.showBiomeBanner(biome,color);
-    }
-  }
-
-  showBiomeBanner(text,color){
-    this.biomeBannerText=text;
-    this.biomeBannerColor=color;
-    this.biomeBannerTimer=3.0;
-  }
-
-  updateRover(dt){
-    const T=this.TILE;
-    const r=this.rover;
-    // Weight penalty
-    const weightFactor=1-((this.upgradeStabilizer?0.5:1.0)*r.cargo/r.maxCargo)*0.55;
-    const thrustPow=r.thrust*Math.max(0.3,weightFactor);
-    // Thrust
+  /* ──────────────── ROVER ──────────────── */
+  _updateRover(dt){
+    const T=TILE;const r=this.rover;const s=this.stats;
+    const cargo01=r.cargo/r.maxCargo;
+    const weightPenalty=1-(s.stabMul*cargo01*0.55);
+    const thrustPow=300*Math.max(0.3,weightPenalty);
     let ax=0,ay=0;
-    if(this.keys['KeyW']||this.keys['ArrowUp']){ay-=thrustPow;this.addEngineParticles();}
-    if(this.keys['KeyS']||this.keys['ArrowDown']){ay+=thrustPow*0.6;}
-    if(this.keys['KeyA']||this.keys['ArrowLeft']){ax-=thrustPow*0.8;}
-    if(this.keys['KeyD']||this.keys['ArrowRight']){ax+=thrustPow*0.8;}
-    r.vx+=ax*dt; r.vy+=ay*dt;
-    // Gravity
-    r.vy+=180*dt;
+    const up=this.keys['KeyW']||this.keys['ArrowUp'];
+    const dn=this.keys['KeyS']||this.keys['ArrowDown'];
+    const lt=this.keys['KeyA']||this.keys['ArrowLeft'];
+    const rt=this.keys['KeyD']||this.keys['ArrowRight'];
+    if(up){ay-=thrustPow;this._spawnExhaust();}
+    if(dn)ay+=thrustPow*0.55;
+    if(lt)ax-=thrustPow*0.8;
+    if(rt)ax+=thrustPow*0.8;
+    r.vx+=ax*dt;r.vy+=ay*dt;
+    r.vy+=185*dt; // gravity
     // Grapple pull
     if(this.grapple.attached){
-      const gx=this.grapple.attachX,gy=this.grapple.attachY;
-      const dx=gx-r.x,dy=gy-r.y;
-      const len=Math.hypot(dx,dy)||1;
-      const maxLen=140;
-      if(len>maxLen){
-        const nx=dx/len,ny=dy/len;
-        const pull=(len-maxLen)*8;
-        r.vx+=nx*pull*dt;
-        r.vy+=ny*pull*dt;
+      const dx=this.grapple.ax-r.x,dy=this.grapple.ay-r.y;
+      const l=Math.hypot(dx,dy)||1;
+      if(l>145){r.vx+=dx/l*(l-145)*7*dt;r.vy+=dy/l*(l-145)*7*dt;}
+    }
+    r.vx*=Math.pow(0.87,dt*60);
+    r.vy*=Math.pow(0.91,dt*60);
+    const maxSpd=380*Math.max(0.38,weightPenalty);
+    const sp=Math.hypot(r.vx,r.vy);if(sp>maxSpd){r.vx=r.vx/sp*maxSpd;r.vy=r.vy/sp*maxSpd;}
+    r.x+=r.vx*dt;this._colX();
+    r.y+=r.vy*dt;this._colY();
+    r.x=Math.max(T,Math.min(W_TILES*T-T,r.x));
+    r.y=Math.max(T,Math.min(H_TILES*T-T,r.y));
+    if(Math.hypot(r.vx,r.vy)>25)r.angle=Math.atan2(r.vy,r.vx);
+    // Engine noise
+    if(ax!==0||ay!==0){
+      this._addNoise(0.03*dt*60,'engine');
+      if(Math.random()<0.025)this._alertAt(r.x,r.y,0.12);
+    }
+    // Fuel
+    if(up||dn||lt||rt)r.fuel=Math.max(0,r.fuel-dt*2.8);
+    if(r.fuel<=0)this._die('FUEL EXHAUSTED');
+    if(r.hull<=0)this._die('HULL BREACH');
+    // Cargo magnet
+    if(s.cargoMagnet)this._doMagnet();
+    // Near-wall spark emitter
+    this._checkDrillSparks(dt);
+  }
+
+  _colX(){
+    const T=TILE;const r=this.rover;
+    const tx=Math.floor(r.x/T),ty=Math.floor(r.y/T);
+    for(let dy=-1;dy<=1;dy++){
+      const ny=ty+dy;if(ny<0||ny>=H_TILES)continue;
+      if(this.tiles[ny]?.[tx]>0){
+        const tw=tx*T,te=tw+T,th=ny*T,tb=th+T;
+        if(r.x-r.w/2<te&&r.x+r.w/2>tw&&r.y-r.h/2<tb&&r.y+r.h/2>th){
+          const imp=Math.abs(r.vx);
+          r.x=r.vx>0?tw-r.w/2:te+r.w/2;
+          r.vx*=-0.22;
+          if(imp>130){this._onWallImpact(imp);}
+        }
       }
     }
-    // Drag
-    r.vx*=Math.pow(0.88,dt*60);
-    r.vy*=Math.pow(0.92,dt*60);
-    // Speed cap with cargo weight
-    const maxSpeed=350*Math.max(0.4,weightFactor);
-    const speed=Math.hypot(r.vx,r.vy);
-    if(speed>maxSpeed){r.vx=r.vx/speed*maxSpeed;r.vy=r.vy/speed*maxSpeed;}
-    // Move & collide
-    r.x+=r.vx*dt;
-    this.collideRoverX();
-    r.y+=r.vy*dt;
-    this.collideRoverY();
-    // Angle from velocity
-    if(Math.hypot(r.vx,r.vy)>20){
-      r.angle=Math.atan2(r.vy,r.vx);
-    }
-    // Bounds
-    r.x=Math.max(T,Math.min(this.worldW*T-T,r.x));
-    r.y=Math.max(T,Math.min(this.worldH*T-T,r.y));
-    // Engine noise
-    if((ax!==0||ay!==0)){
-      const noiseRate=this.upgradeSilentEngine?0.02:0.04;
-      this.addNoise(noiseRate*dt*60);
-      if(Math.random()<0.03) this.alertEnemiesAtPos(r.x,r.y,0.15);
-    }
-    // Sonar reveal for rover position
-    if(this.revealedTiles.size===0||(Math.floor(r.x/T)+','+Math.floor(r.y/T)) !== this._lastRoverTile){
-      this._lastRoverTile=Math.floor(r.x/T)+','+Math.floor(r.y/T);
-      this.revealAroundPoint(r.x,r.y,40,0.3);
+  }
+  _colY(){
+    const T=TILE;const r=this.rover;
+    const tx=Math.floor(r.x/T),ty=Math.floor(r.y/T);
+    for(let dx=-1;dx<=1;dx++){
+      const nx=tx+dx;if(nx<0||nx>=W_TILES)continue;
+      if(this.tiles[ty]?.[nx]>0){
+        const tw=nx*T,te=tw+T,th=ty*T,tb=th+T;
+        if(r.x-r.w/2<te&&r.x+r.w/2>tw&&r.y-r.h/2<tb&&r.y+r.h/2>th){
+          const imp=Math.abs(r.vy);
+          r.y=r.vy>0?th-r.h/2:tb+r.h/2;
+          r.vy*=-0.18;
+          if(imp>140){this._onWallImpact(imp);}
+        }
+      }
     }
   }
 
-  addEngineParticles(){
-    const r=this.rover;
-    const angle=r.angle+Math.PI;
-    for(let i=0;i<1;i++){
-      const a=angle+(Math.random()-0.5)*0.8;
+  _onWallImpact(speed){
+    const norm=Math.min(1,speed/500);
+    this._damageRover(speed*0.004);
+    this.triggerShake(norm*12,14,0.25);
+    this._addNoise(0.12,'impact');
+    this._alertAt(this.rover.x,this.rover.y,0.25);
+    playImpact(norm);
+    // Spark burst at collision
+    for(let i=0;i<12+Math.floor(norm*18);i++){
+      const a=Math.random()*Math.PI*2;const sp=60+Math.random()*120*norm;
+      this.particles.push({x:this.rover.x,y:this.rover.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+        life:0.25+Math.random()*0.35,maxLife:0.6,col:Math.random()<0.4?'#ff8':'#f80',size:1.5+Math.random()*2.5,type:'spark'});
+    }
+  }
+
+  _damageRover(amount){
+    const mult=this.stats.hullDamMul;
+    this.rover.hull=Math.max(0,this.rover.hull-amount*mult);
+    this.flashCol='#f00';this.flashT=0.18;
+  }
+
+  _spawnExhaust(){
+    const r=this.rover;const a=r.angle+Math.PI;
+    const spread=0.7;
+    for(let i=0;i<2;i++){
+      const ang=a+(Math.random()-0.5)*spread;
       this.particles.push({
-        x:r.x+Math.cos(a)*10,y:r.y+Math.sin(a)*10,
-        vx:Math.cos(a)*80*(0.5+Math.random()*0.5),
-        vy:Math.sin(a)*80*(0.5+Math.random()*0.5),
-        life:0.3,maxLife:0.3,
-        color:Math.random()<0.3?'#0ff':'#08f',size:2
+        x:r.x+Math.cos(ang)*11,y:r.y+Math.sin(ang)*11,
+        vx:Math.cos(ang)*(60+Math.random()*50),
+        vy:Math.sin(ang)*(60+Math.random()*50),
+        life:0.28,maxLife:0.28,
+        col:Math.random()<0.35?'#0ff':'#06c',size:1.8+Math.random()*1.5,type:'exhaust'
       });
     }
   }
 
-  collideRoverX(){
-    const T=this.TILE;
-    const r=this.rover;
-    const tx=Math.floor(r.x/T),ty=Math.floor(r.y/T);
-    for(let dy=-1;dy<=1;dy++){
-      const ny=ty+dy, nx=tx;
-      if(ny<0||ny>=this.worldH||nx<0||nx>=this.worldW) continue;
-      if(this.tiles[ny][nx]>0){
-        const tw=nx*T,te=tw+T,th=ny*T,tb=th+T;
-        if(r.x-r.w/2<te&&r.x+r.w/2>tw&&r.y-r.h/2<tb&&r.y+r.h/2>th){
-          if(r.vx>0) r.x=tw-r.w/2; else r.x=te+r.w/2;
-          const impact=Math.abs(r.vx);
-          r.vx*=-0.25;
-          if(impact>120){this.damageRover(impact*0.005);this.addNoise(0.1);this.alertEnemiesAtPos(r.x,r.y,0.2);}
-        }
-      }
-    }
-  }
-
-  collideRoverY(){
-    const T=this.TILE;
-    const r=this.rover;
-    const tx=Math.floor(r.x/T),ty=Math.floor(r.y/T);
-    for(let dx=-1;dx<=1;dx++){
-      const nx=tx+dx, ny=ty;
-      if(ny<0||ny>=this.worldH||nx<0||nx>=this.worldW) continue;
-      if(this.tiles[ny][nx]>0){
-        const tw=nx*T,te=tw+T,th=ny*T,tb=th+T;
-        if(r.x-r.w/2<te&&r.x+r.w/2>tw&&r.y-r.h/2<tb&&r.y+r.h/2>th){
-          if(r.vy>0) r.y=th-r.h/2; else r.y=tb+r.h/2;
-          const impact=Math.abs(r.vy);
-          r.vy*=-0.2;
-          if(impact>150){this.damageRover(impact*0.004);this.addNoise(0.1);this.alertEnemiesAtPos(r.x,r.y,0.2);}
-        }
-      }
-    }
-  }
-
-  damageRover(amount){
-    const mult=this.upgradeHullPlating?0.7:1.0;
-    this.rover.hull=Math.max(0,this.rover.hull-amount*mult);
-    this.flashScreen(0.2,'#f00');
-    this.shakeScreen(amount*0.02,amount*0.5);
-  }
-
-  flashScreen(duration,color){
-    this.flashTimer=duration;
-    this.flashColor=color;
-  }
-
-  shakeScreen(duration,amount){
-    this.shakeTimer=Math.max(this.shakeTimer,duration);
-    this.shakeAmt=amount||4;
-  }
-
-  tryDrill(dt){
-    const T=this.TILE;
-    const r=this.rover;
-    this.drillTimer=(this.drillTimer||0)+dt;
-    const drillTime=this.upgradeHeavyDrill?0.3:0.7;
-    if(this.drillTimer<drillTime) return;
-    this.drillTimer=0;
-    // Find adjacent tile
-    const dirs=[[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,1],[1,-1],[-1,-1]];
-    let found=false;
+  /* ─ Drill near-wall spark emitter ─ */
+  _checkDrillSparks(dt){
+    const T=TILE;const r=this.rover;
+    // Check if near a wall (within T/2)
+    let nearWall=false;
+    const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
     for(const[dx,dy] of dirs){
-      const tx=Math.floor((r.x+dx*(r.w/2+T*0.6))/T);
-      const ty=Math.floor((r.y+dy*(r.h/2+T*0.6))/T);
-      if(ty<0||ty>=this.worldH||tx<0||tx>=this.worldW) continue;
-      const tile=this.tiles[ty][tx];
-      if(tile>0){
-        // Collect mineral
-        if(tile>1){
-          const val=this.getMineralValue(tile);
-          const weightAdd=val*0.8;
-          if(r.cargo<r.maxCargo){
-            r.cargo=Math.min(r.maxCargo,r.cargo+weightAdd);
-            this.runCredits+=val*3;
-            this.addParticleBurst(tx*T+T/2,ty*T+T/2,12,this.getMineralColor(tile),4);
-          }
+      const tx=Math.floor((r.x+dx*(r.w/2+T*0.4))/T);
+      const ty=Math.floor((r.y+dy*(r.h/2+T*0.4))/T);
+      if(ty>=0&&ty<H_TILES&&tx>=0&&tx<W_TILES&&this.tiles[ty]?.[tx]>0){
+        nearWall=true;
+        if(this.keys['KeyE']){
+          // Directional sparks toward wall
+          this.drillSparks.push({
+            x:r.x+dx*(r.w/2),y:r.y+dy*(r.h/2),
+            vx:dx*(80+Math.random()*120)+(Math.random()-0.5)*60,
+            vy:dy*(80+Math.random()*120)+(Math.random()-0.5)*60,
+            life:0.18+Math.random()*0.22,maxLife:0.4,
+            col:Math.random()<0.5?'#ff0':Math.random()<0.5?'#f80':'#fff',
+            size:1+Math.random()*2
+          });
         }
-        this.tiles[ty][tx]=0;
-        const noiseAmt=this.upgradeHeavyDrill?0.25:0.12;
-        this.addNoise(noiseAmt);
-        this.alertEnemiesAtPos(r.x,r.y,this.upgradeHeavyDrill?0.6:0.35);
-        this.revealAroundPoint(tx*T+T/2,ty*T+T/2,T*2.5,1.0);
-        this.addParticleBurst(tx*T+T/2,ty*T+T/2,8,'#888',3);
-        this.shakeScreen(0.1,2);
-        found=true;
         break;
       }
     }
+    this.drillSparks=this.drillSparks.filter(s=>{
+      s.life-=dt;s.x+=s.vx*dt;s.y+=s.vy*dt;s.vy+=200*dt;return s.life>0;
+    });
   }
 
-  getMineralValue(type){
-    return [0,0,8,25,60,120][type]||0;
-  }
-  getMineralColor(type){
-    return ['','','#0f8','#80f','#ff0','#f80'][type]||'#fff';
+  /* ─ Drill action ─ */
+  _tryDrill(dt){
+    const T=TILE;const r=this.rover;const s=this.stats;
+    this.drillTimer+=dt;
+    const drillInterval=0.65/s.drillMul;
+    if(this.drillTimer<drillInterval)return;
+    this.drillTimer=0;
+    const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+    for(const[dx,dy] of dirs){
+      const tx=Math.floor((r.x+dx*(r.w/2+T*0.55))/T);
+      const ty=Math.floor((r.y+dy*(r.h/2+T*0.55))/T);
+      if(ty<0||ty>=H_TILES||tx<0||tx>=W_TILES)continue;
+      const tile=this.tiles[ty][tx];
+      if(tile>0){
+        if(tile>1){
+          const val=this._mVal(tile);
+          if(r.cargo<r.maxCargo){
+            r.cargo=Math.min(r.maxCargo,r.cargo+val*0.9);
+            this.runCredits+=val*3;
+            playPickup(tile);
+            // Burst of glowing mineral particles
+            const col=this._mCol(tile);
+            for(let i=0;i<16;i++){
+              const a=Math.random()*Math.PI*2;const sp=40+Math.random()*90;
+              this.particles.push({x:tx*T+T/2,y:ty*T+T/2,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+                life:0.5+Math.random()*0.7,maxLife:1.2,col,size:2+Math.random()*3,type:'mineral'});
+            }
+            // Floating text
+            this.particles.push({x:tx*T+T/2,y:ty*T,vx:(Math.random()-0.5)*20,vy:-40,
+              life:1.2,maxLife:1.2,col:'#ff0',size:0,type:'text',text:`+${val*3}`});
+          }
+        }
+        this.tiles[ty][tx]=0;
+        this._addNoise(0.14,'drill');
+        this._alertAt(r.x,r.y,0.4);
+        this._revealAround(tx*T+T/2,ty*T+T/2,T*2.8,1.2);
+        this._paintSonarTrail(tx*T+T/2,ty*T+T/2,T*2.8,1.2);
+        this.triggerShake(s.drillMul*1.8,18,0.12);
+        playDrill();
+        // Rock debris particles
+        for(let i=0;i<8;i++){
+          const a=Math.random()*Math.PI*2;
+          this.particles.push({x:tx*T+T/2,y:ty*T+T/2,
+            vx:Math.cos(a)*(30+Math.random()*60),vy:Math.sin(a)*(30+Math.random()*60),
+            life:0.3+Math.random()*0.3,maxLife:0.6,col:'#556',size:2+Math.random()*2,type:'rock'});
+        }
+        return;
+      }
+    }
   }
 
-  updateGrapple(dt){
-    const g=this.grapple;
-    if(!g.active) return;
-    const T=this.TILE;
+  _emergencyBoost(){
+    if(this.boostCD>0||this.rover.fuel<18)return;
+    const r=this.rover;
+    r.vx+=Math.cos(r.angle)*420;r.vy+=Math.sin(r.angle)*420;
+    r.fuel-=18;this.boostCD=3.5;
+    this._addNoise(0.55,'boost');
+    this._alertAt(r.x,r.y,0.8);
+    this.triggerShake(10,10,0.5);
+    playBoost();
+    for(let i=0;i<22;i++){
+      const a=r.angle+Math.PI+(Math.random()-0.5)*1.2;const sp=120+Math.random()*150;
+      this.particles.push({x:r.x,y:r.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+        life:0.4+Math.random()*0.4,maxLife:0.8,col:Math.random()<0.5?'#0ff':'#08f',size:2+Math.random()*3,type:'boost'});
+    }
+  }
+
+  _jettisonCargo(){
+    if(this.rover.cargo<=0)return;
+    const lost=Math.floor(this.rover.cargo*0.65);
+    this.rover.cargo=Math.floor(this.rover.cargo*0.35);
+    this._showAlert(`DUMPED ${lost}kg`,1.5);
+    this._addNoise(0.12,'boost');
+  }
+
+  _doMagnet(){
+    const r=this.rover;
+    // Auto-collect any mineral tiles within 70px
+    const T=TILE;const range=70;
+    const btx=Math.floor(r.x/T),bty=Math.floor(r.y/T);
+    const tr=Math.ceil(range/T)+1;
+    for(let dy=-tr;dy<=tr;dy++){for(let dx=-tr;dx<=tr;dx++){
+      const tx=btx+dx,ty=bty+dy;
+      if(tx<0||ty<0||tx>=W_TILES||ty>=H_TILES)continue;
+      const tile=this.tiles[ty][tx];
+      if(tile>1&&Math.hypot(dx*T,dy*T)<range&&r.cargo<r.maxCargo){
+        const val=this._mVal(tile);
+        r.cargo=Math.min(r.maxCargo,r.cargo+val*0.9);
+        this.runCredits+=val*3;
+        this.tiles[ty][tx]=0;
+        playPickup(tile);
+      }
+    }}
+  }
+
+  /* ──────────────── GRAPPLE ──────────────── */
+  _launchGrapple(mx,my){
+    if(this.grapple.on)return;
+    const wx=mx-innerWidth/2+this.cx;const wy=my-innerHeight/2+this.cy;
+    const d=Math.hypot(wx-this.rover.x,wy-this.rover.y)||1;
+    this.grapple={on:true,x:this.rover.x,y:this.rover.y,
+      vx:(wx-this.rover.x)/d*620,vy:(wy-this.rover.y)/d*620,
+      attached:false,ax:0,ay:0};
+    this._addNoise(0.03,'engine');
+  }
+  _releaseGrapple(){this.grapple.on=false;this.grapple.attached=false;}
+  _updateGrapple(dt){
+    const g=this.grapple;if(!g.on)return;
     if(!g.attached){
-      g.x+=g.vx*dt; g.y+=g.vy*dt;
-      g.vy+=200*dt;
-      // Check tile collision
-      const tx=Math.floor(g.x/T),ty=Math.floor(g.y/T);
-      if(ty>=0&&ty<this.worldH&&tx>=0&&tx<this.worldW&&this.tiles[ty][tx]>0){
-        g.attached=true; g.attachX=g.x; g.attachY=g.y;
-        this.addNoise(0.03);
-        // Shock grapple stun enemies
-        if(this.upgradeShockGrapple){
+      g.x+=g.vx*dt;g.y+=g.vy*dt;g.vy+=210*dt;
+      const tx=Math.floor(g.x/TILE),ty=Math.floor(g.y/TILE);
+      if(ty>=0&&ty<H_TILES&&tx>=0&&tx<W_TILES&&this.tiles[ty]?.[tx]>0){
+        g.attached=true;g.ax=g.x;g.ay=g.y;
+        this._addNoise(0.02,'engine');
+        if(this.stats.shockGrapple){
           for(const e of this.enemies){
-            if(Math.hypot(e.x-g.x,e.y-g.y)<80){
-              e.stun=2.0;
-              this.addParticleBurst(e.x,e.y,10,'#ff0',5);
+            if(Math.hypot(e.x-g.x,e.y-g.y)<90){
+              e.stun=2.2;e.state='FLEEING';
+              for(let i=0;i<12;i++){const a=Math.random()*Math.PI*2;
+                this.particles.push({x:e.x,y:e.y,vx:Math.cos(a)*80,vy:Math.sin(a)*80,
+                  life:0.5,maxLife:0.5,col:'#ff0',size:3,type:'spark'});}
             }
           }
         }
       }
-      // Out of range
-      if(Math.hypot(g.x-this.rover.x,g.y-this.rover.y)>300){
-        this.releaseGrapple();
-      }
+      if(Math.hypot(g.x-this.rover.x,g.y-this.rover.y)>320)this._releaseGrapple();
     }
   }
 
-  updateEnemies(dt){
-    const T=this.TILE;
-    for(let i=this.enemies.length-1;i>=0;i--){
-      const e=this.enemies[i];
-      if(e.stun>0){e.stun-=dt;continue;}
-      e.revealTimer=Math.max(0,e.revealTimer-dt);
-      // Is rover heard?
-      const dist=Math.hypot(e.x-this.rover.x,e.y-this.rover.y);
-      if(this.noiseLevel>0.2&&dist<e.detectRange*this.noiseLevel*1.5){
-        e.lastHeardX=this.rover.x; e.lastHeardY=this.rover.y;
-        e.alert=Math.min(1,e.alert+dt*0.8);
-      } else {
-        e.alert=Math.max(0,e.alert-dt*0.15);
-      }
-      if(e.type==='hollow_titan'&&!e.awakened) continue;
-      // Move toward last heard position
-      let mx=0,my=0;
-      if(e.alert>0.1){
-        const tdx=e.lastHeardX-e.x, tdy=e.lastHeardY-e.y;
-        const tlen=Math.hypot(tdx,tdy)||1;
-        mx=tdx/tlen; my=tdy/tlen;
-      } else {
-        // Wander
-        e.wanderTimer-=dt;
-        if(e.wanderTimer<0){
-          e.wanderTimer=2+Math.random()*3;
-          const a=Math.random()*Math.PI*2;
-          e.wanderDx=Math.cos(a); e.wanderDy=Math.sin(a);
-        }
-        mx=e.wanderDx; my=e.wanderDy;
-      }
-      const speedMod=e.alert>0.5?1.5:0.6;
-      e.vx=(e.vx||0)*0.9+mx*e.speed*speedMod*dt;
-      e.vy=(e.vy||0)*0.9+my*e.speed*speedMod*dt;
-      e.x+=e.vx; e.y+=e.vy;
-      // Burrow through walls
-      if(e.type!=='burrow_leech'){
-        const etx=Math.floor(e.x/T),ety=Math.floor(e.y/T);
-        if(ety>=0&&ety<this.worldH&&etx>=0&&etx<this.worldW&&this.tiles[ety][etx]>0){
-          e.x-=e.vx; e.y-=e.vy;
-          e.vx*=-0.5; e.vy*=-0.5;
-        }
-      }
-      // Damage rover on contact
-      if(dist<e.size+12){
-        const dmg=(e.type==='hollow_titan')?25:8;
-        this.damageRover(dmg);
-        this.flashScreen(0.15,'#f00');
-        e.x+=((e.x-this.rover.x)/dist)*40;
-        e.y+=((e.y-this.rover.y)/dist)*40;
-        this.addParticleBurst(this.rover.x,this.rover.y,15,'#f00',5);
-        this.addNoise(0.3);
-        this.alertEnemiesAtPos(this.rover.x,this.rover.y,0.6);
-      }
-      // Echo phantom: reveal itself via sonar pulse
-      if(e.type==='echo_phantom'){
-        e.phaseTimer=(e.phaseTimer||0)+dt;
-        if(e.phaseTimer>2){
-          e.phaseTimer=0;
-          this.sonarWaves.push({x:e.x,y:e.y,r:0,maxR:80,speed:120,alpha:0.6,type:'phantom'});
-          this.revealAroundPoint(e.x,e.y,80,1.0);
-          this.addNoise(0.1);
-        }
-      }
+  /* ──────────────── EXTRACT ──────────────── */
+  _checkExtract(){
+    const d=Math.hypot(this.rover.x-this.extractPt.x,this.rover.y-this.extractPt.y);
+    if(d<100){this._doExtract();}
+    else{this._showAlert('REACH SURFACE TO EXTRACT',1.5);}
+  }
+  _openPause(){
+    if(gameState!=='playing')return;
+    this.running=false;
+    gameState='paused';
+    cgEvent('stop');
+    if(AC)AC.suspend().catch(()=>{});
+    document.getElementById('scrPause').style.display='flex';
+  }
+  _closePause(){
+    if(gameState!=='paused')return;
+    document.getElementById('scrPause').style.display='none';
+    gameState='playing';
+    this.running=true;
+    cgEvent('start');
+    if(AC&&!MUTED)AC.resume().catch(()=>{});
+    this.lastT=performance.now();
+    this.loop();
+  }
+  _doExtract(){
+    this.running=false;cgEvent('stop');cgEvent('happy');
+    SAVE.totalCredits=(SAVE.totalCredits||0)+this.runCredits;
+    writeSave();
+    const el=document.getElementById('exStats');
+    el.innerHTML=`DEPTH <span>${Math.floor(this.maxDepth)}m</span><br>CARGO VALUE <span>${this.runCredits} CR</span><br>TIME <span>${Math.floor(this.runTime)}s</span>`;
+    document.getElementById('scrExtract').style.display='flex';
+    gameState='extracted';
+  }
+  _die(reason){
+    this.running=false;cgEvent('stop');
+    const salvage=Math.floor(this.runCredits*0.3);
+    SAVE.totalCredits=(SAVE.totalCredits||0)+salvage;
+    writeSave();
+    document.getElementById('deadStats').innerHTML=
+      `CAUSE <span>${reason}</span><br>SALVAGE <span>${salvage} CR (30%)</span><br>DEPTH <span>${Math.floor(this.maxDepth)}m</span>`;
+    document.getElementById('scrDead').style.display='flex';
+    this.triggerShake(20,8,1.0);
+    gameState='dead';
+  }
+
+  /* ──────────────── MINERAL HELPERS ──────────────── */
+  _mVal(t){return[0,0,8,25,60,120][t]||0;}
+  _mCol(t){return['','','#0f8','#90f','#ff0','#f80'][t]||'#fff';}
+
+  /* ──────────────── ALERTS ──────────────── */
+  _showAlert(msg,dur=2){
+    clearTimeout(this._alertTO);
+    document.getElementById('alertTxt').textContent=msg;
+    const b=document.getElementById('alertBox');
+    b.classList.add('on');
+    this._alertTO=setTimeout(()=>b.classList.remove('on'),dur*1000);
+  }
+
+  /* ──────────────── BIOME ──────────────── */
+  _checkBiome(){
+    const ty=Math.floor(this.rover.y/TILE);
+    let name,col;
+    if(ty<70){name='VOID CAVES';col='#0ff';}
+    else if(ty<140){name='CRYSTAL GRAVE';col='#c0f';}
+    else if(ty<210){name='ASH TUNNELS';col='#aaa';}
+    else{name='MACHINE DEPTHS';col='#0f8';}
+    if(name!==this.biome){
+      this.biome=name;
+      const bb=document.getElementById('biomeBanner');
+      bb.textContent=name;bb.style.color=col;bb.style.textShadow=`0 0 20px ${col}`;
+      bb.style.opacity='1';
+      this.biomeTimer=3;
     }
-    // Spawn more enemies as we go deeper
-    const spawnChance=dt*(0.005+this.depth/100000);
-    if(Math.random()<spawnChance&&this.enemies.length<20){
-      const angle=Math.random()*Math.PI*2;
-      const dist=300+Math.random()*200;
-      const ex=this.rover.x+Math.cos(angle)*dist;
-      const ey=this.rover.y+Math.sin(angle)*dist;
-      const T2=this.TILE;
-      const etx=Math.floor(ex/T2),ety=Math.floor(ey/T2);
-      if(ety>=0&&ety<this.worldH&&etx>=0&&etx<this.worldW&&this.tiles[ety][etx]===0){
-        const types=['echo_stalker','echo_stalker','burrow_leech'];
-        if(this.depth>600) types.push('echo_phantom');
-        this.enemies.push(this.createEnemy(types[Math.floor(Math.random()*types.length)],ex,ey));
-      }
+    if(this.biomeTimer>0){
+      this.biomeTimer-=1/60;
+      if(this.biomeTimer<=0){document.getElementById('biomeBanner').style.opacity='0';}
     }
   }
 
-  showAlert(msg,duration){
-    this.alertMsg=msg;
-    this.alertTimer=duration;
-    const box=document.getElementById('alert-box');
-    document.getElementById('alert-text').textContent=msg;
-    box.classList.add('show');
-    setTimeout(()=>box.classList.remove('show'),(duration||2)*1000);
+  /* ──────────────── INPUT ──────────────── */
+  _setupInput(){
+    this._kd=(e)=>{
+      if(gameState==='paused'&&e.code==='Escape'){G._closePause();return;}
+      if(gameState!=='playing')return;
+      this.keys[e.code]=true;
+      if(e.code==='Space'){e.preventDefault();this._fireSonar();}
+      if(e.code==='KeyQ'){e.preventDefault();this._emergencyBoost();}
+      if(e.code==='KeyF'){this._jettisonCargo();}
+      if(e.code==='Escape'){this._openPause();}
+    };
+    this._ku=(e)=>delete this.keys[e.code];
+    this._md=(e)=>{if(gameState!=='playing')return;this._launchGrapple(e.clientX,e.clientY);};
+    this._mu=(e)=>this._releaseGrapple();
+    this._mm=(e)=>{this.mx=e.clientX;this.my=e.clientY;};
+    window.addEventListener('keydown',this._kd);
+    window.addEventListener('keyup',this._ku);
+    cvMain.addEventListener('mousedown',this._md);
+    window.addEventListener('mouseup',this._mu);
+    window.addEventListener('mousemove',this._mm);
+  }
+  destroy(){
+    this.running=false;
+    window.removeEventListener('keydown',this._kd);
+    window.removeEventListener('keyup',this._ku);
+    cvMain.removeEventListener('mousedown',this._md);
+    window.removeEventListener('mouseup',this._mu);
+    window.removeEventListener('mousemove',this._mm);
   }
 
-  updateHUD(){
-    const r=this.rover;
-    document.getElementById('bar-fuel').style.width=(r.fuel/r.maxFuel*100)+'%';
-    document.getElementById('bar-hull').style.width=(r.hull/r.maxHull*100)+'%';
-    document.getElementById('bar-cargo').style.width=(r.cargo/r.maxCargo*100)+'%';
-    document.getElementById('credits-run').textContent=this.runCredits+' CR';
-    document.getElementById('depth-val').textContent=Math.floor(this.depth)+'m';
-    document.getElementById('noise-bar').style.width=(this.noiseLevel*100)+'%';
-    // Sonar cooldown indicator
-    const frac=Math.max(0,1-this.sonarCooldown/this.sonarMaxCool);
-    document.getElementById('bar-fuel').parentElement.parentElement.style.opacity='1';
-  }
-
-  playSound(type){
-    // Web Audio API sound generation
-    try{
-      const ac=getAudioCtx();
-      if(!ac) return;
-      if(type==='sonar'){
-        const osc=ac.createOscillator();
-        const gain=ac.createGain();
-        osc.connect(gain); gain.connect(ac.destination);
-        osc.frequency.setValueAtTime(800,ac.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(200,ac.currentTime+0.8);
-        gain.gain.setValueAtTime(0.15,ac.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.8);
-        osc.start(); osc.stop(ac.currentTime+0.8);
-      } else if(type==='drill'){
-        const buf=ac.createBuffer(1,ac.sampleRate*0.1,ac.sampleRate);
-        const d=buf.getChannelData(0);
-        for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.3;
-        const src=ac.createBufferSource(); src.buffer=buf;
-        const gain=ac.createGain(); gain.gain.value=0.4;
-        src.connect(gain); gain.connect(ac.destination);
-        src.start();
+  /* ══════════════════════════════════════
+     UPDATE
+     ══════════════════════════════════════ */
+  update(dt){
+    if(!this.running)return;
+    this.runTime+=dt;
+    // Camera
+    this.cx+=(this.rover.x-this.cx)*7*dt;
+    this.cy+=(this.rover.y-this.cy)*7*dt;
+    this._processShake(dt);
+    // Sonar cooldown
+    if(this.sonarCD>0)this.sonarCD-=dt;
+    if(this.boostCD>0)this.boostCD-=dt;
+    if(this.flashT>0)this.flashT-=dt;
+    // Noise
+    this._decayNoise(dt);
+    // Rover
+    this._updateRover(dt);
+    if(this.keys['KeyE'])this._tryDrill(dt);
+    // Grapple
+    this._updateGrapple(dt);
+    // Enemies
+    for(const e of this.enemies)this._updateEnemyAI(e,dt);
+    // Dynamic enemy spawn
+    if(Math.random()<dt*(0.004+this.depth/120000)&&this.enemies.length<22){
+      const a=Math.random()*Math.PI*2,d=280+Math.random()*220;
+      const ex=this.rover.x+Math.cos(a)*d,ey=this.rover.y+Math.sin(a)*d;
+      const tx=Math.floor(ex/TILE),ty=Math.floor(ey/TILE);
+      if(ty>=0&&ty<H_TILES&&tx>=0&&tx<W_TILES&&this.tiles[ty]?.[tx]===0){
+        const pool=['echo_stalker','echo_stalker','burrow_leech'];
+        if(this.depth>500)pool.push('echo_phantom');
+        this.enemies.push(this._mkEnemy(pool[Math.floor(Math.random()*pool.length)],ex,ey));
       }
-    }catch(e){}
-  }
-
-  playAmbient(){
-    try{
-      const ac=getAudioCtx();
-      if(!ac) return;
-      // Random distant creature sound or cave creak
-      const osc=ac.createOscillator();
-      const gain=ac.createGain();
-      const f=40+Math.random()*80;
-      osc.type=Math.random()<0.5?'sine':'triangle';
-      osc.frequency.setValueAtTime(f,ac.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(f*(0.5+Math.random()),ac.currentTime+1.5);
-      gain.gain.setValueAtTime(0.00,ac.currentTime);
-      gain.gain.linearRampToValueAtTime(0.04,ac.currentTime+0.2);
-      gain.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+2.5);
-      osc.connect(gain); gain.connect(ac.destination);
-      osc.start(); osc.stop(ac.currentTime+2.5);
-    }catch(e){}
-  }
-
-  addParticleBurst(x,y,count,color,size){
-    for(let i=0;i<count;i++){
-      const a=Math.random()*Math.PI*2;
-      const spd=30+Math.random()*80;
-      this.particles.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,life:0.4+Math.random()*0.4,color,size:size||3});
     }
+    // Particles & floaters
+    this.particles=this.particles.filter(p=>{p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;
+      if(p.type==='rock')p.vy+=280*dt;if(p.type==='mineral')p.vy-=20*dt;return p.life>0;});
+    this.mineralFloaters=this.mineralFloaters.filter(f=>{f.life-=dt;f.x+=f.vx*dt;f.y+=f.vy*dt;f.vy*=0.98;return f.life>0;});
+    // Sonar rings
+    this.sonarRings=this.sonarRings.filter(w=>{w.r+=w.speed*dt;return w.r<w.maxR;});
+    // Reveal map decay
+    for(const[k,v]of this.revMap){const nv=v-dt;if(nv<=0)this.revMap.delete(k);else this.revMap.set(k,nv);}
+    // Extract pulse
+    this.exPulse=(this.exPulse||0)+dt;
+    // Depth
+    this.depth=Math.max(0,(this.rover.y/TILE-2)*2.9);
+    if(this.depth>this.maxDepth)this.maxDepth=this.depth;
+    // Biome
+    this._checkBiome();
+    // Ambience
+    this.ambTimer-=dt;if(this.ambTimer<0){this.ambTimer=2.5+Math.random()*5;playAmbientCave();}
+    // Enemy nearby warning
+    let nearestEnemy=9999;
+    for(const e of this.enemies)if(e.state==='HUNTING'||e.state==='SEARCHING')nearestEnemy=Math.min(nearestEnemy,Math.hypot(e.x-this.rover.x,e.y-this.rover.y));
+    if(nearestEnemy<160&&Math.random()<0.01)playCreatureNear();
+    // Warning vignette
+    const wf=document.getElementById('warnFlash');
+    const danger=Math.max(this.noiseLevel,nearestEnemy<200?1-nearestEnemy/200:0);
+    if(danger>0.4){
+      const pulse=Math.sin(this.runTime*7)*0.4+0.6;
+      wf.style.background=`radial-gradient(ellipse at center,transparent 40%,rgba(255,0,0,${(danger-0.4)*0.35*pulse}) 100%)`;
+      wf.style.opacity='1';
+    } else wf.style.opacity='0';
+    // HUD
+    this._hud();
   }
 
-  // ---- RENDER ----
+  _hud(){
+    const r=this.rover;const s=this.stats;
+    document.getElementById('bFuel').style.width=(r.fuel/r.maxFuel*100)+'%';
+    document.getElementById('bHull').style.width=(r.hull/r.maxHull*100)+'%';
+    const hf=r.hull/r.maxHull;
+    document.getElementById('bHull').style.background=hf>0.5?'linear-gradient(90deg,#f60,#ff0)':hf>0.25?'linear-gradient(90deg,#f40,#f80)':'linear-gradient(90deg,#f00,#f44)';
+    document.getElementById('bCargo').style.width=(r.cargo/r.maxCargo*100)+'%';
+    document.getElementById('runCr').textContent=this.runCredits+' CR';
+    document.getElementById('depthVal').textContent=Math.floor(this.depth)+'m';
+    document.getElementById('noiseBar').style.width=(this.noiseLevel*100)+'%';
+    // Sonar indicator
+    const sr=document.getElementById('sonarReady');
+    const sc=document.getElementById('sonarCoolPct');
+    if(this.sonarCD<=0){sr.classList.add('rdy');sc.textContent='READY';}
+    else{sr.classList.remove('rdy');sc.textContent=Math.ceil(this.sonarCD*10)/10+'s';}
+  }
+
+  /* ══════════════════════════════════════
+     RENDER
+     ══════════════════════════════════════ */
   render(){
-    const T=this.TILE;
-    const cw=canvas.width, ch=canvas.height;
+    const cw=innerWidth,ch=innerHeight;
     ctx.clearRect(0,0,cw,ch);
-    // Background
-    ctx.fillStyle='#000006';
-    ctx.fillRect(0,0,cw,ch);
+    // Deep cave background gradient
+    const bg=ctx.createRadialGradient(cw/2,ch/2,0,cw/2,ch/2,Math.max(cw,ch)*0.8);
+    bg.addColorStop(0,'#00050f');bg.addColorStop(1,'#000000');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,cw,ch);
+
+    // Fade sonar canvas
+    this._fadeSonarCanvas(1/60);
+
     ctx.save();
-    // Camera transform with shake
-    const sx=this.shakeTimer>0?this.shakeX:0;
-    const sy=this.shakeTimer>0?this.shakeY:0;
-    ctx.translate(cw/2-this.camX+sx, ch/2-this.camY+sy);
-    // Render tiles that are revealed
-    this.renderTiles();
-    // Render extract point
-    this.renderExtractPoint();
-    // Render sonar waves (before rover so it looks like echo)
-    for(const w of this.sonarWaves) this.renderSonarWave(w);
-    // Render enemies (only visible ones)
-    for(const e of this.enemies) this.renderEnemy(e);
-    // Render grapple
-    this.renderGrapple();
-    // Render rover
-    this.renderRover();
-    // Render particles
-    this.renderParticles();
-    // Fog/vignette in world space
+    const ox=cw/2-this.cx+this.shakeX;
+    const oy=ch/2-this.cy+this.shakeY;
+    ctx.translate(ox,oy);
+
+    this._drawTiles();
+    this._drawExtractPoint();
+    this._drawMineralFloaters();
+    this._drawSonarRings();
+    this._drawEnemies();
+    this._drawGrapple();
+    this._drawRover();
+    this._drawParticles();
+    this._drawDrillSparks();
+
     ctx.restore();
-    // Screen-space overlay effects
-    this.renderScreenEffects();
-    // Biome banner
-    this.renderBiomeBanner();
-    // Flash
-    if(this.flashTimer>0){
-      ctx.fillStyle=this.flashColor;
-      ctx.globalAlpha=this.flashTimer*2;
+
+    // Screen-space overlays
+    this._drawVignette();
+    if(this.flashT>0){
+      ctx.fillStyle=this.flashCol;
+      ctx.globalAlpha=Math.min(0.5,this.flashT*2.5);
       ctx.fillRect(0,0,cw,ch);
       ctx.globalAlpha=1;
     }
-    // Vignette
-    this.renderVignette();
+    // Depth-based fog
+    const fog=Math.min(0.45,this.depth/4000);
+    if(fog>0.01){
+      ctx.fillStyle=`rgba(0,0,8,${fog*0.4})`;
+      ctx.fillRect(0,0,cw,ch);
+    }
   }
 
-  renderTiles(){
-    const T=this.TILE;
-    const cw=canvas.width, ch=canvas.height;
-    const visR=Math.ceil(cw/2/T)+2;
-    const visH=Math.ceil(ch/2/T)+2;
-    const camTX=Math.floor(this.camX/T);
-    const camTY=Math.floor(this.camY/T);
-    for(let ty=camTY-visH;ty<=camTY+visH;ty++){
-      for(let tx=camTX-visR;tx<=camTX+visR;tx++){
-        if(ty<0||ty>=this.worldH||tx<0||tx>=this.worldW) continue;
-        const tile=this.tiles[ty][tx];
-        if(tile===0) continue;
-        const key=`${tx},${ty}`;
-        const rev=this.revealedTiles.get(key)||0;
-        if(rev<=0) continue;
-        const alpha=Math.min(1,rev)*0.95;
-        const wx=tx*T, wy=ty*T;
-        // Biome-based color
-        const biomeY=Math.floor(ty/80);
-        let baseColor;
-        if(tile===1){
-          if(biomeY===0) baseColor='#1a2030';
-          else if(biomeY===1) baseColor='#200e30';
-          else if(biomeY===2) baseColor='#1a1a18';
-          else baseColor='#0e1a10';
-        } else {
-          baseColor=this.getMineralColor(tile);
-        }
+  _drawTiles(){
+    const T=TILE,cw=innerWidth,ch=innerHeight;
+    const vr=Math.ceil(cw/2/T)+2,vh=Math.ceil(ch/2/T)+2;
+    const camTX=Math.floor(this.cx/T),camTY=Math.floor(this.cy/T);
+    for(let ty=camTY-vh;ty<=camTY+vh;ty++){
+      for(let tx=camTX-vr;tx<=camTX+vr;tx++){
+        if(ty<0||ty>=H_TILES||tx<0||tx>=W_TILES)continue;
+        const tile=this.tiles[ty][tx];if(tile===0)continue;
+        const k=`${tx},${ty}`;const rev=this.revMap.get(k)||0;if(rev<=0)continue;
+        const alpha=Math.min(0.95,rev*0.9);
+        const wx=tx*T,wy=ty*T;
+        const bz=Math.floor(ty/70);
         ctx.globalAlpha=alpha;
-        ctx.fillStyle=baseColor;
-        ctx.fillRect(wx,wy,T,T);
-        // Mineral glow
-        if(tile>1){
-          const col=this.getMineralColor(tile);
-          ctx.shadowColor=col; ctx.shadowBlur=8;
-          ctx.fillStyle=col+'44';
-          ctx.fillRect(wx+2,wy+2,T-4,T-4);
-          ctx.shadowBlur=0;
-          // Bright center dot
-          ctx.fillStyle=col;
-          ctx.beginPath();
-          ctx.arc(wx+T/2,wy+T/2,T*0.18,0,Math.PI*2);
-          ctx.fill();
+        if(tile===1){
+          // Rock color per biome
+          const rc=['#111e2e','#1a0e2a','#151510','#0a1a0c'][bz]||'#111e2e';
+          ctx.fillStyle=rc;ctx.fillRect(wx,wy,T,T);
+          ctx.strokeStyle='#0ff09';ctx.lineWidth=0.4;ctx.strokeRect(wx,wy,T,T);
         } else {
-          // Rock outline glow
-          ctx.strokeStyle='#0ff1';
-          ctx.lineWidth=0.5;
-          ctx.strokeRect(wx,wy,T,T);
+          const col=this._mCol(tile);
+          ctx.fillStyle='#050505';ctx.fillRect(wx,wy,T,T);
+          ctx.shadowColor=col;ctx.shadowBlur=10;
+          ctx.fillStyle=col+'22';ctx.fillRect(wx+1,wy+1,T-2,T-2);
+          ctx.shadowBlur=0;
+          ctx.beginPath();ctx.arc(wx+T/2,wy+T/2,T*0.32,0,Math.PI*2);
+          ctx.fillStyle=col+'88';ctx.fill();
+          ctx.beginPath();ctx.arc(wx+T/2,wy+T/2,T*0.15,0,Math.PI*2);
+          ctx.fillStyle=col;ctx.fill();
         }
         ctx.globalAlpha=1;
       }
     }
   }
 
-  renderExtractPoint(){
-    const ex=this.extractPoint.x, ey=this.extractPoint.y;
-    // Always slightly visible near surface
-    const rev=this.revealedTiles.get(`${Math.floor(ex/this.TILE)},${Math.floor(ey/this.TILE)}`)||0;
-    const alpha=Math.max(0.15,Math.min(1,rev));
-    ctx.globalAlpha=alpha;
-    const t=performance.now()/1000;
-    // Glowing extract platform
-    ctx.shadowColor='#0f0'; ctx.shadowBlur=20*Math.sin(t*2+1)*0.5+10;
-    ctx.fillStyle='#0f0';
-    ctx.beginPath();
-    ctx.moveTo(ex-30,ey);ctx.lineTo(ex+30,ey);ctx.lineTo(ex+20,ey-15);ctx.lineTo(ex-20,ey-15);
-    ctx.closePath(); ctx.fill();
+  _drawExtractPoint(){
+    const T=TILE,t=performance.now()/1000;
+    const ex=this.extractPt.x,ey=this.extractPt.y;
+    // Always faintly visible near surface
+    const dist=Math.hypot(this.rover.x-ex,this.rover.y-ey);
+    const vis=Math.max(0.08,Math.min(0.95,1-dist/500));
+    ctx.globalAlpha=vis;
+    const pulse=0.7+Math.sin(t*2.5)*0.3;
+    ctx.shadowColor='#0f8';ctx.shadowBlur=25*pulse;
+    ctx.fillStyle='#0f8';
+    ctx.beginPath();ctx.moveTo(ex-28,ey);ctx.lineTo(ex+28,ey);ctx.lineTo(ex+18,ey-14);ctx.lineTo(ex-18,ey-14);ctx.closePath();ctx.fill();
+    // Up arrow
+    ctx.beginPath();ctx.moveTo(ex,ey-32);ctx.lineTo(ex-9,ey-18);ctx.lineTo(ex+9,ey-18);ctx.closePath();
+    ctx.fillStyle='#0f8cc';ctx.fill();
     ctx.shadowBlur=0;
-    // Arrow up
-    ctx.fillStyle='#0f04';
-    ctx.beginPath();
-    ctx.moveTo(ex,ey-35); ctx.lineTo(ex-10,ey-20); ctx.lineTo(ex+10,ey-20);
-    ctx.closePath(); ctx.fill();
+    if(dist<300){ctx.font='bold 10px Share Tech Mono';ctx.textAlign='center';ctx.fillStyle='#0f8';ctx.fillText('▲ EXTRACTION',ex,ey-46);}
     ctx.globalAlpha=1;
-    // "EXTRACT" label if close
-    if(this.extractVisible>0.3){
-      ctx.globalAlpha=this.extractVisible;
-      ctx.fillStyle='#0f0';
-      ctx.font='bold 11px Share Tech Mono';
-      ctx.textAlign='center';
-      ctx.fillText('▲ EXTRACTION POINT',ex,ey-50);
-      ctx.globalAlpha=1;
+  }
+
+  _drawMineralFloaters(){
+    for(const f of this.mineralFloaters){
+      const a=f.life/f.maxLife;
+      ctx.globalAlpha=a*0.7;
+      ctx.fillStyle=f.col;
+      ctx.shadowColor=f.col;ctx.shadowBlur=6;
+      ctx.beginPath();ctx.arc(f.wx,f.wy,f.size*a,0,Math.PI*2);ctx.fill();
+      ctx.shadowBlur=0;
     }
-  }
-
-  renderSonarWave(w){
-    const frac=w.r/w.maxR;
-    const alpha=w.alpha*(1-frac);
-    ctx.globalAlpha=Math.max(0,alpha)*0.7;
-    let color='#0ff';
-    if(w.type==='extract') color='#0f0';
-    else if(w.type==='phantom') color='#f0f';
-    else if(w.type==='enemy') color='#f44';
-    ctx.beginPath();
-    ctx.arc(w.x,w.y,w.r,0,Math.PI*2);
-    ctx.strokeStyle=color;
-    ctx.lineWidth=1.5*(1-frac);
-    ctx.stroke();
     ctx.globalAlpha=1;
   }
 
-  renderEnemy(e){
-    const key=`${Math.floor(e.x/this.TILE)},${Math.floor(e.y/this.TILE)}`;
-    const rev=this.revealedTiles.get(key)||0;
-    if(rev<=0) return;
-    const alpha=Math.min(1,rev)*(e.stun>0?0.4:1.0)*(e.type==='echo_phantom'?(e.alpha||0.7):1);
-    ctx.globalAlpha=alpha;
-    const t=performance.now()/1000;
-    const pulseFactor=e.alert>0.5?Math.sin(t*8)*0.3+0.7:1;
-    ctx.shadowColor=e.color; ctx.shadowBlur=12*pulseFactor;
-    if(e.type==='hollow_titan'){
-      // Big scary thing
-      ctx.beginPath();
-      ctx.arc(e.x,e.y,e.size,0,Math.PI*2);
-      ctx.fillStyle=e.color+'33';
-      ctx.fill();
-      ctx.strokeStyle=e.color;
-      ctx.lineWidth=2;
+  _drawSonarRings(){
+    for(const w of this.sonarRings){
+      const frac=w.r/w.maxR;const a=w.alpha*(1-frac);
+      if(a<=0)continue;
+      ctx.globalAlpha=a*0.8;
+      ctx.beginPath();ctx.arc(w.wx,w.wy,w.r,0,Math.PI*2);
+      ctx.strokeStyle=w.color;
+      ctx.lineWidth=w.isMain?(2.5*(1-frac)+0.5):1;
+      // Inner glow fill for main ring
+      if(w.isMain&&frac<0.3){
+        ctx.globalAlpha=a*(0.3-frac)*0.4;
+        ctx.fillStyle=w.color;ctx.fill();
+      }
+      ctx.globalAlpha=a*0.8;
       ctx.stroke();
-      // Eyes
-      for(let i=-1;i<=1;i+=2){
-        ctx.beginPath();
-        ctx.arc(e.x+i*10,e.y-5,4,0,Math.PI*2);
-        ctx.fillStyle='#f00';
-        ctx.fill();
-        ctx.shadowColor='#f00';ctx.shadowBlur=15;
-        ctx.fill();
-      }
-    } else if(e.type==='echo_stalker'){
-      ctx.beginPath();
-      // Spider-like
-      for(let i=0;i<8;i++){
-        const a=i*Math.PI*2/8+t;
-        ctx.moveTo(e.x,e.y);
-        ctx.lineTo(e.x+Math.cos(a)*e.size*1.5,e.y+Math.sin(a)*e.size*1.5);
-      }
-      ctx.strokeStyle=e.color; ctx.lineWidth=1.5; ctx.stroke();
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.size*0.5,0,Math.PI*2);
-      ctx.fillStyle=e.color; ctx.fill();
-      // Eye
-      ctx.beginPath(); ctx.arc(e.x,e.y,2,0,Math.PI*2);
-      ctx.fillStyle='#fff'; ctx.fill();
-    } else if(e.type==='burrow_leech'){
-      ctx.beginPath();
-      // Worm shape
-      for(let i=0;i<6;i++){
-        const a=t*3+i;
-        ctx.arc(e.x+Math.cos(a)*4*i*0.4,e.y+Math.sin(a)*2*i*0.3,e.size*0.4,0,Math.PI*2);
-      }
-      ctx.fillStyle=e.color; ctx.fill();
-    } else if(e.type==='echo_phantom'){
-      // Ghostly circle with distortion
-      ctx.beginPath();
-      for(let a=0;a<Math.PI*2;a+=0.2){
-        const r=e.size*(0.8+Math.sin(a*4+t*5)*0.3);
-        if(a===0) ctx.moveTo(e.x+Math.cos(a)*r,e.y+Math.sin(a)*r);
-        else ctx.lineTo(e.x+Math.cos(a)*r,e.y+Math.sin(a)*r);
-      }
-      ctx.closePath();
-      ctx.fillStyle='#0ff11'; ctx.fill();
-      ctx.strokeStyle='#0ff'; ctx.lineWidth=1; ctx.stroke();
-    }
-    ctx.shadowBlur=0; ctx.globalAlpha=1;
-    // Alert indicator
-    if(e.alert>0.5){
-      ctx.globalAlpha=e.alert*alpha;
-      ctx.fillStyle='#f00';
-      ctx.font='12px Share Tech Mono';
-      ctx.textAlign='center';
-      ctx.fillText('!',e.x,e.y-e.size-8);
-      ctx.globalAlpha=1;
-    }
-  }
-
-  renderGrapple(){
-    const g=this.grapple;
-    const r=this.rover;
-    if(!g.active) return;
-    ctx.strokeStyle='#0ff8';
-    ctx.lineWidth=1;
-    ctx.setLineDash([4,4]);
-    ctx.beginPath();
-    ctx.moveTo(r.x,r.y);
-    ctx.lineTo(g.x,g.y);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    // Hook head
-    ctx.beginPath();
-    ctx.arc(g.x,g.y,4,0,Math.PI*2);
-    ctx.fillStyle=g.attached?'#ff0':'#0ff';
-    ctx.shadowColor=g.attached?'#ff0':'#0ff'; ctx.shadowBlur=8;
-    ctx.fill();
-    ctx.shadowBlur=0;
-  }
-
-  renderRover(){
-    const r=this.rover;
-    const t=performance.now()/1000;
-    ctx.save();
-    ctx.translate(r.x,r.y);
-    // Body
-    ctx.shadowColor='#0ff'; ctx.shadowBlur=10;
-    // Hull color based on damage
-    const hullFrac=r.hull/r.maxHull;
-    const hullColor=hullFrac>0.5?'#0ff':(hullFrac>0.25?'#ff0':'#f00');
-    ctx.fillStyle=hullColor+'22';
-    ctx.strokeStyle=hullColor;
-    ctx.lineWidth=1.5;
-    // Rover body shape
-    ctx.beginPath();
-    ctx.moveTo(14,0); ctx.lineTo(6,-7); ctx.lineTo(-10,-7);
-    ctx.lineTo(-14,-3); ctx.lineTo(-14,3); ctx.lineTo(-10,7);
-    ctx.lineTo(6,7); ctx.closePath();
-    ctx.fill(); ctx.stroke();
-    // Cockpit
-    ctx.fillStyle=hullColor+'66';
-    ctx.beginPath(); ctx.ellipse(4,0,5,4,0,0,Math.PI*2); ctx.fill();
-    // Drill tip
-    ctx.fillStyle='#888';
-    ctx.beginPath();
-    ctx.moveTo(14,0); ctx.lineTo(20,2); ctx.lineTo(20,-2); ctx.closePath();
-    ctx.fill();
-    // Engine glow
-    ctx.shadowColor='#08f'; ctx.shadowBlur=15;
-    ctx.fillStyle='#08f';
-    ctx.beginPath(); ctx.arc(-13,0,3,0,Math.PI*2); ctx.fill();
-    ctx.shadowBlur=0;
-    // Cargo indicator dots
-    const cargoFrac=r.cargo/r.maxCargo;
-    if(cargoFrac>0){
-      ctx.fillStyle='#f0f';
-      for(let i=0;i<Math.floor(cargoFrac*5);i++){
-        ctx.beginPath();
-        ctx.arc(-6+i*3,-10,1.5,0,Math.PI*2);
-        ctx.fill();
-      }
-    }
-    ctx.restore();
-    ctx.shadowBlur=0;
-  }
-
-  renderParticles(){
-    for(const p of this.particles){
-      const alpha=p.life/(p.maxLife||0.6);
-      ctx.globalAlpha=alpha;
-      ctx.fillStyle=p.color;
-      ctx.beginPath();
-      ctx.arc(p.x,p.y,p.size*(0.5+alpha*0.5),0,Math.PI*2);
-      ctx.fill();
     }
     ctx.globalAlpha=1;
   }
 
-  renderScreenEffects(){
-    const cw=canvas.width,ch=canvas.height;
-    // Noise level tint
-    if(this.noiseLevel>0.5){
-      const alpha=(this.noiseLevel-0.5)*0.15;
-      ctx.fillStyle='rgba(255,0,0,'+alpha+')';
-      ctx.fillRect(0,0,cw,ch);
-    }
-    // Depth darkness - deeper = slightly more fog (but sonar cuts through)
-    const depthFog=Math.min(0.5,this.depth/3000);
-    if(depthFog>0){
-      ctx.fillStyle='rgba(0,0,10,'+depthFog*0.3+')';
-      ctx.fillRect(0,0,cw,ch);
+  _drawEnemies(){
+    const T=TILE,t=performance.now()/1000;
+    for(const e of this.enemies){
+      const k=`${Math.floor(e.x/T)},${Math.floor(e.y/T)}`;
+      const rev=this.revMap.get(k)||0;if(rev<=0)continue;
+      const baseAlpha=Math.min(1,rev)*(e.stun>0?0.35:1);
+      ctx.globalAlpha=baseAlpha;
+      const pulseMag=e.state==='HUNTING'?Math.sin(t*12)*0.5+0.5:0.6;
+      ctx.shadowColor=e.col;ctx.shadowBlur=14*pulseMag;
+
+      if(e.type==='echo_stalker'){
+        // Spider body
+        ctx.fillStyle=e.col;
+        ctx.beginPath();ctx.arc(e.x,e.y,e.size*0.55,0,Math.PI*2);ctx.fill();
+        // Legs
+        for(let i=0;i<8;i++){
+          const la=i*Math.PI/4+e.animT*1.5+Math.sin(i)*0.3;
+          const lLen=e.size*(1.3+Math.sin(e.animT*3+i)*0.2);
+          const midX=e.x+Math.cos(la)*lLen*0.6,midY=e.y+Math.sin(la)*lLen*0.6+Math.sin(e.animT*4+i)*2;
+          const endX=e.x+Math.cos(la)*lLen,endY=e.y+Math.sin(la)*lLen;
+          ctx.beginPath();ctx.moveTo(e.x,e.y);ctx.lineTo(midX,midY);ctx.lineTo(endX,endY);
+          ctx.strokeStyle=e.col;ctx.lineWidth=1.2;ctx.stroke();
+        }
+        // Eyes (2 red dots) – brightness driven by alert state
+        const eyeA=0.4+e.eyeGlow*0.6;
+        ctx.globalAlpha=baseAlpha*eyeA;
+        ctx.shadowColor='#f00';ctx.shadowBlur=8+e.eyeGlow*12;
+        ctx.fillStyle='#f00';
+        for(let i=-1;i<=1;i+=2){ctx.beginPath();ctx.arc(e.x+i*4,e.y-3,2,0,Math.PI*2);ctx.fill();}
+        ctx.globalAlpha=baseAlpha;ctx.shadowColor=e.col;ctx.shadowBlur=14*pulseMag;
+      }
+      else if(e.type==='burrow_leech'){
+        // Segmented worm
+        for(let seg=0;seg<5;seg++){
+          const sa=e.animT*3+seg*0.6;
+          const sx=e.x+Math.cos(sa)*seg*4*0.5;
+          const sy=e.y+Math.sin(sa)*seg*2*0.3;
+          const sr2=e.size*(0.65-seg*0.08);
+          ctx.beginPath();ctx.arc(sx,sy,Math.max(1,sr2),0,Math.PI*2);
+          ctx.fillStyle=e.col;ctx.fill();
+        }
+        // Maw
+        ctx.fillStyle='#200';
+        ctx.beginPath();ctx.arc(e.x,e.y,e.size*0.3,0,Math.PI*2);ctx.fill();
+      }
+      else if(e.type==='hollow_titan'){
+        if(e.state==='SLEEPING'){
+          ctx.globalAlpha=baseAlpha*0.3;
+          ctx.beginPath();ctx.arc(e.x,e.y,e.size,0,Math.PI*2);
+          ctx.strokeStyle=e.col;ctx.lineWidth=1;ctx.stroke();
+        } else {
+          // Massive pulsing body
+          ctx.beginPath();ctx.arc(e.x,e.y,e.size*(1+Math.sin(e.animT*2)*0.08),0,Math.PI*2);
+          ctx.fillStyle=e.col+'18';ctx.fill();
+          ctx.strokeStyle=e.col;ctx.lineWidth=2.5;ctx.stroke();
+          // Tentacle-like protrusions
+          for(let i=0;i<6;i++){
+            const a=i*Math.PI/3+e.animT*0.8;const r=e.size*(1.3+Math.sin(e.animT*2+i)*0.3);
+            ctx.beginPath();ctx.moveTo(e.x,e.y);
+            ctx.lineTo(e.x+Math.cos(a)*r,e.y+Math.sin(a)*r);
+            ctx.strokeStyle=e.col+'88';ctx.lineWidth=2;ctx.stroke();
+          }
+          // 3 glowing eyes
+          for(let i=0;i<3;i++){
+            const ea=e.animT*0.5+i*Math.PI*2/3;
+            ctx.fillStyle='#f00';ctx.shadowColor='#f00';ctx.shadowBlur=15;
+            ctx.beginPath();ctx.arc(e.x+Math.cos(ea)*10,e.y+Math.sin(ea)*8,4,0,Math.PI*2);ctx.fill();
+          }
+        }
+      }
+      else if(e.type==='echo_phantom'){
+        // Ghostly distorted ring
+        ctx.globalAlpha=baseAlpha*(0.4+Math.sin(e.animT*4)*0.2);
+        for(let r2=0;r2<3;r2++){
+          ctx.beginPath();
+          for(let a=0;a<Math.PI*2;a+=0.15){
+            const rad=e.size*(0.7+Math.sin(a*4+e.animT*5)*0.35)*(1+r2*0.25);
+            const px=e.x+Math.cos(a)*rad,py=e.y+Math.sin(a)*rad;
+            r2===0&&a<0.16?ctx.moveTo(px,py):ctx.lineTo(px,py);
+          }
+          ctx.closePath();ctx.strokeStyle=e.col;ctx.lineWidth=1;ctx.stroke();
+        }
+      }
+
+      ctx.shadowBlur=0;ctx.globalAlpha=1;
+      // Alert indicator
+      if(e.state==='HUNTING'){
+        ctx.globalAlpha=0.9;
+        ctx.font='bold 14px Share Tech Mono';
+        ctx.textAlign='center';
+        ctx.fillStyle='#f00';ctx.shadowColor='#f00';ctx.shadowBlur=10;
+        ctx.fillText('!',e.x,e.y-e.size-10);
+        ctx.shadowBlur=0;ctx.globalAlpha=1;
+      } else if(e.state==='ALERTED'){
+        ctx.globalAlpha=0.6+Math.sin(t*8)*0.2;
+        ctx.font='11px Share Tech Mono';ctx.textAlign='center';
+        ctx.fillStyle='#ff0';ctx.fillText('?',e.x,e.y-e.size-8);
+        ctx.globalAlpha=1;
+      }
     }
   }
 
-  renderBiomeBanner(){
-    if(this.biomeBannerTimer<=0) return;
-    const alpha=Math.min(1,this.biomeBannerTimer);
-    const cw=canvas.width,ch=canvas.height;
-    ctx.save();
-    ctx.globalAlpha=alpha;
-    ctx.textAlign='center';
-    ctx.font='900 28px Orbitron, monospace';
-    ctx.fillStyle=this.biomeBannerColor;
-    ctx.shadowColor=this.biomeBannerColor; ctx.shadowBlur=20;
-    ctx.fillText(this.biomeBannerText,cw/2,ch/2);
-    ctx.font='11px Share Tech Mono';
-    ctx.fillStyle=this.biomeBannerColor+'aa';
-    ctx.fillText('NEW ZONE DETECTED',cw/2,ch/2+26);
+  _drawGrapple(){
+    const g=this.grapple;if(!g.on)return;
+    const r=this.rover;
+    ctx.setLineDash([5,5]);
+    ctx.strokeStyle=g.attached?'#ff08':'#0ff6';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(r.x,r.y);ctx.lineTo(g.x,g.y);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc(g.x,g.y,4,0,Math.PI*2);
+    ctx.fillStyle=g.attached?'#ff0':'#0ff';
+    ctx.shadowColor=g.attached?'#ff0':'#0ff';ctx.shadowBlur=10;
+    ctx.fill();ctx.shadowBlur=0;
+  }
+
+  _drawRover(){
+    const r=this.rover,t=performance.now()/1000;
+    ctx.save();ctx.translate(r.x,r.y);
+    const hf=r.hull/r.maxHull;
+    const hcol=hf>0.5?'#0ff':hf>0.25?'#ff0':'#f44';
+    // Glow
+    ctx.shadowColor=hcol;ctx.shadowBlur=12+Math.sin(t*4)*3;
+    // Main body
+    ctx.beginPath();
+    ctx.moveTo(15,0);ctx.lineTo(6,-7);ctx.lineTo(-11,-7);ctx.lineTo(-15,-3);ctx.lineTo(-15,3);ctx.lineTo(-11,7);ctx.lineTo(6,7);
+    ctx.closePath();
+    ctx.fillStyle=hcol+'14';ctx.fill();
+    ctx.strokeStyle=hcol;ctx.lineWidth=1.6;ctx.stroke();
+    // Cockpit bubble
+    ctx.shadowColor=hcol;ctx.shadowBlur=6;
+    ctx.fillStyle=hcol+'44';
+    ctx.beginPath();ctx.ellipse(4,0,5,3.5,0,0,Math.PI*2);ctx.fill();
     ctx.shadowBlur=0;
+    // Drill tip (animated when drilling)
+    const drilling=this.keys['KeyE'];
+    const drillOffset=drilling?Math.sin(t*30)*1.5:0;
+    ctx.fillStyle='#aaa';
+    ctx.beginPath();ctx.moveTo(15,0);ctx.lineTo(20+drillOffset,2.5);ctx.lineTo(20+drillOffset,-2.5);ctx.closePath();
+    ctx.fill();
+    // Engine exhaust glow
+    ctx.shadowColor='#08f';ctx.shadowBlur=15;
+    ctx.fillStyle='#06c';
+    ctx.beginPath();ctx.arc(-14,0,3.5,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;
+    // Cargo pips
+    const cp=Math.floor((r.cargo/r.maxCargo)*6);
+    for(let i=0;i<cp;i++){
+      ctx.beginPath();ctx.arc(-8+i*4,-10,1.8,0,Math.PI*2);
+      ctx.fillStyle=i<3?'#f0f':'#f00';ctx.fill();
+    }
     ctx.restore();
   }
 
-  renderVignette(){
-    const cw=canvas.width,ch=canvas.height;
-    const grad=ctx.createRadialGradient(cw/2,ch/2,ch*0.2,cw/2,ch/2,ch*0.85);
-    grad.addColorStop(0,'transparent');
-    grad.addColorStop(1,'rgba(0,0,0,0.75)');
-    ctx.fillStyle=grad;
-    ctx.fillRect(0,0,cw,ch);
-    // Chromatic aberration effect on edges when noise high
-    if(this.noiseLevel>0.6){
-      const str=this.noiseLevel*0.004;
-      ctx.fillStyle=`rgba(255,0,0,${str})`;
-      ctx.fillRect(-3,0,cw,ch);
-      ctx.fillStyle=`rgba(0,255,255,${str})`;
-      ctx.fillRect(3,0,cw,ch);
+  _drawParticles(){
+    for(const p of this.particles){
+      const a=p.life/p.maxLife;
+      if(p.type==='text'){
+        ctx.globalAlpha=a;ctx.font=`bold 11px Share Tech Mono`;
+        ctx.textAlign='center';ctx.fillStyle=p.col;
+        ctx.shadowColor=p.col;ctx.shadowBlur=8;
+        ctx.fillText(p.text,p.x,p.y);ctx.shadowBlur=0;
+        continue;
+      }
+      ctx.globalAlpha=a*(p.type==='exhaust'?0.7:0.95);
+      ctx.fillStyle=p.col;
+      if(p.type==='spark'||p.type==='mineral'){ctx.shadowColor=p.col;ctx.shadowBlur=6;}
+      const r2=Math.max(0.5,p.size*a);
+      ctx.beginPath();ctx.arc(p.x,p.y,r2,0,Math.PI*2);ctx.fill();
+      ctx.shadowBlur=0;
+    }
+    ctx.globalAlpha=1;
+  }
+
+  _drawDrillSparks(){
+    for(const s of this.drillSparks){
+      const a=s.life/s.maxLife;
+      ctx.globalAlpha=a;
+      ctx.strokeStyle=s.col;ctx.lineWidth=1.2;
+      ctx.shadowColor=s.col;ctx.shadowBlur=5;
+      ctx.beginPath();
+      ctx.moveTo(s.x,s.y);
+      ctx.lineTo(s.x-s.vx*0.05,s.y-s.vy*0.05);
+      ctx.stroke();
+      ctx.shadowBlur=0;
+    }
+    ctx.globalAlpha=1;
+  }
+
+  _drawVignette(){
+    const cw=innerWidth,ch=innerHeight;
+    const g=ctx.createRadialGradient(cw/2,ch/2,ch*0.18,cw/2,ch/2,ch*0.85);
+    g.addColorStop(0,'transparent');g.addColorStop(1,'rgba(0,0,0,.82)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,cw,ch);
+    // Chromatic aberration at high noise
+    if(this.noiseLevel>0.55){
+      const s=(this.noiseLevel-0.55)*0.006;
+      ctx.globalAlpha=s;
+      ctx.fillStyle='rgba(255,0,0,1)';ctx.fillRect(-3,0,cw,ch);
+      ctx.fillStyle='rgba(0,255,255,1)';ctx.fillRect(3,0,cw,ch);
+      ctx.globalAlpha=1;
     }
   }
 
+  /* ── LOOP ── */
   loop(){
-    if(!this.running) return;
+    if(!this.running)return;
     const now=performance.now();
-    const dt=Math.min((now-this.lastTime)/1000,0.05);
-    this.lastTime=now;
+    const dt=Math.min((now-this.lastT)/1000,0.05);
+    this.lastT=now;
     this.update(dt);
     this.render();
     requestAnimationFrame(()=>this.loop());
   }
 }
 
-// ---- AUDIO CONTEXT ----
-let _audioCtx=null;
-function getAudioCtx(){
-  if(!_audioCtx){
-    try{_audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}
-  }
-  if(_audioCtx.state==='suspended') _audioCtx.resume().catch(()=>{});
-  return _audioCtx;
-}
-
-// ---- UI WIRING ----
-function showUpgradeScreen(fromDeath){
-  document.getElementById('total-credits-display').textContent=`TOTAL CREDITS: ${totalCredits} CR`;
-  const grid=document.getElementById('upgrade-grid');
+/* ══════════════════════════════════════
+   UPGRADE SHOP UI
+   ══════════════════════════════════════ */
+function buildShop(){
+  document.getElementById('shopBalance').textContent=`TOTAL CREDITS: ${SAVE.totalCredits||0} CR`;
+  const grid=document.getElementById('shopGrid');
   grid.innerHTML='';
-  for(const u of UPGRADES){
-    const owned=ownedUpgrades.includes(u.id);
+  for(const item of SHOP){
+    const curLv=(typeof SAVE[item.id]==='boolean')?(SAVE[item.id]?1:0):SAVE[item.id];
+    const maxed=curLv>=item.maxLv;
+    const cost=getUpgCost(item);
+    const canAfford=(SAVE.totalCredits||0)>=cost;
     const card=document.createElement('div');
-    card.className='upgrade-card'+(owned?' owned':'');
-    card.innerHTML=`<h3>${u.name}</h3><p>${u.desc}</p>`+
-      (owned?`<div class="owned-badge">✓ INSTALLED</div>`:`<div class="cost">${u.cost} CR</div>`);
-    if(!owned){
+    card.className='upCard'+(maxed?' maxed':'');
+    card.dataset.id=item.id;
+    // Pips
+    const pipsHtml=Array.from({length:item.maxLv},(_,i)=>
+      `<div class="upPip${i<curLv?' filled':''}"></div>`).join('');
+    card.innerHTML=`
+      <h3>${item.name}</h3>
+      <p>${item.desc(curLv)}</p>
+      <div class="upPips">${pipsHtml}</div>
+      <div class="upLevel">${maxed?'MAX LEVEL':'LEVEL '+curLv+' / '+item.maxLv}</div>
+      ${!maxed?`<div class="upCost">${canAfford?'▶':''} COST: ${cost} CR</div>`:''}
+    `;
+    if(!maxed){
       card.onclick=()=>{
-        if(totalCredits>=u.cost){
-          totalCredits-=u.cost;
-          ownedUpgrades.push(u.id);
-          saveState();
-          showUpgradeScreen(fromDeath);
-        } else {
-          card.style.borderColor='#f005';
-          setTimeout(()=>card.style.borderColor='',500);
+        if((SAVE.totalCredits||0)<cost){
+          card.classList.add('noAfford');
+          setTimeout(()=>card.classList.remove('noAfford'),350);
+          return;
         }
+        SAVE.totalCredits-=cost;
+        if(typeof SAVE[item.id]==='boolean') SAVE[item.id]=true;
+        else SAVE[item.id]=(SAVE[item.id]||0)+1;
+        writeSave();
+        buildShop();
       };
     }
     grid.appendChild(card);
   }
-  document.getElementById('upgrade-screen').style.display='flex';
-  gameState='upgrading';
 }
+
+/* ══════════════════════════════════════
+   GAME STATE MACHINE
+   ══════════════════════════════════════ */
+let gameState='title';
+let G=null;
 
 function startGame(){
-  document.getElementById('title-screen').style.display='none';
-  document.getElementById('death-screen').style.display='none';
-  document.getElementById('extract-screen').style.display='none';
-  document.getElementById('upgrade-screen').style.display='none';
-  if(G){G.destroy();}
-  G=new DeepSignalGame();
+  ['scrTitle','scrDead','scrExtract','scrUpgrade'].forEach(id=>document.getElementById(id).style.display='none');
+  if(G)G.destroy();
+  G=new Game();
   gameState='playing';
-  crazySdkEvent('start');
+  cgEvent('start');
+  getAC();// unlock audio
   G.loop();
-  getAudioCtx(); // unlock audio
 }
 
-document.getElementById('btn-play').onclick=startGame;
-document.getElementById('btn-retry').onclick=startGame;
-document.getElementById('btn-extract-play').onclick=startGame;
-document.getElementById('btn-death-upgrade').onclick=()=>{
-  document.getElementById('death-screen').style.display='none';
-  showUpgradeScreen(true);
+function openUpgrade(returnFn){
+  buildShop();
+  document.getElementById('scrUpgrade').style.display='flex';
+  document.getElementById('btnUpgDone').onclick=()=>{
+    document.getElementById('scrUpgrade').style.display='none';
+    returnFn();
+  };
+}
+
+// Button wiring
+document.getElementById('btnPlay').onclick=startGame;
+document.getElementById('btnTitleUpgrade').onclick=()=>openUpgrade(()=>document.getElementById('scrTitle').style.display='flex');
+document.getElementById('btnRetry').onclick=startGame;
+document.getElementById('btnDeadUpgrade').onclick=()=>{
+  document.getElementById('scrDead').style.display='none';
+  openUpgrade(startGame);
 };
-document.getElementById('btn-extract-upgrade').onclick=()=>{
-  document.getElementById('extract-screen').style.display='none';
-  showUpgradeScreen(false);
-};
-document.getElementById('btn-upgrade-done').onclick=()=>{
-  startGame();
+document.getElementById('btnExPlay').onclick=startGame;
+document.getElementById('btnExUpgrade').onclick=()=>{
+  document.getElementById('scrExtract').style.display='none';
+  openUpgrade(startGame);
 };
 
-// CrazyGames SDK load
-(function(){
-  const script=document.createElement('script');
-  script.src='https://sdk.crazygames.com/crazygames-sdk-v3.js';
-  script.onload=function(){
-    try{window.CrazyGames.SDK.init().catch(()=>{});}catch(e){}
-  };
-  document.head.appendChild(script);
+/* ── Mute toggle ── */
+(()=>{
+  const btn=document.getElementById('muteBtn');
+  const wave1=document.getElementById('soundWave1');
+  const wave2=document.getElementById('soundWave2');
+  const line=document.getElementById('muteLine');
+  btn.addEventListener('click',()=>{
+    MUTED=!MUTED;
+    btn.classList.toggle('muted',MUTED);
+    wave1.style.display=MUTED?'none':'';
+    wave2.style.display=MUTED?'none':'';
+    line.style.display=MUTED?'':'none';
+    // Suspend/resume AudioContext to stop any currently playing nodes
+    if(AC){
+      if(MUTED) AC.suspend().catch(()=>{});
+      else AC.resume().catch(()=>{});
+    }
+  });
 })();
+
+/* ── Pause menu buttons ── */
+document.getElementById('btnResume').onclick=()=>{if(G)G._closePause();};
+document.getElementById('btnEmergencyExtract').onclick=()=>{
+  document.getElementById('scrPause').style.display='none';
+  gameState='playing';
+  if(G){G.running=true;G._checkExtract();}
+};
+
+/* ── Tab-switch: auto-pause AudioContext ── */
+document.addEventListener('visibilitychange',()=>{
+  if(!AC)return;
+  if(document.hidden){
+    AC.suspend().catch(()=>{});
+  } else {
+    // Only resume if the user hasn't manually muted
+    if(!MUTED)AC.resume().catch(()=>{});
+  }
+});
+/* ── Fullscreen toggle ── */
+document.getElementById('fsBtn').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(err => {
+      console.log(`Fullscreen error: ${err.message}`);
+    });
+  } else {
+    document.exitFullscreen();
+  }
+});
 </script>
 </body>
 </html>
